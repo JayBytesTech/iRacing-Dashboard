@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/iracing-engineer/event.schema.json",
+  "title": "RaceEvent",
+  "type": "object",
+  "required": [
+    "eventId",
+    "timestamp",
+    "type",
+    "title",
+    "source"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sessionTimeSec": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "lap": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "type": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "debug",
+        "info",
+        "warning",
+        "critical"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "details": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "carIdx": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "raw",
+        "derived",
+        "manual",
+        "system"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

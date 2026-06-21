@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/iracing-engineer/live_snapshot.schema.json",
+  "title": "LiveSnapshot",
+  "type": "object",
+  "required": [
+    "type",
+    "schemaVersion",
+    "sequence",
+    "timestamp",
+    "payload"
+  ],
+  "properties": {
+    "type": {
+      "const": "liveSnapshot"
+    },
+    "schemaVersion": {
+      "type": "string"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "connection",
+        "session",
+        "player",
+        "cars"
+      ],
+      "properties": {
+        "connection": {
+          "type": "object",
+          "properties": {
+            "iracingConnected": {
+              "type": "boolean"
+            },
+            "isOnTrack": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "isReplayPlaying": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "dataAgeMs": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": true
+        },
+        "session": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string"
+            },
+            "trackName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sessionType": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sessionNum": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "timeRemainingSec": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "lapsRemaining": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "flagState": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": true
+        },
+        "player": {
+          "$ref": "#/$defs/car"
+        },
+        "cars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/car"
+          }
+        },
+        "strategy": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "car": {
+      "type": "object",
+      "required": [
+        "carIdx"
+      ],
+      "properties": {
+        "carIdx": {
+          "type": "integer"
+        },
+        "carNumber": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "driverName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "teamName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "classId": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "className": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "classPosition": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lap": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lapCompleted": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lapDistPct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "speedKph": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gear": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rpm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fuelLevelLiters": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "onPitRoad": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "trackSurface": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "isPlayer": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

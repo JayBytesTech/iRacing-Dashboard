@@ -1,0 +1,10 @@
+{
+  "server": { "host": "0.0.0.0", "port": 5174, "allowLan": true },
+  "telemetry": {
+    "uiSnapshotHz": 5,
+    "recordSession": false,
+    "mode": "ibt",
+    "ibtPath": "../../data/sample-sessions/example.ibt"
+  },
+  "privacy": { "maskDriverNames": false, "storeRawSessionInfo": false }
+}

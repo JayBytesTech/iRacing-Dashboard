@@ -1,0 +1,41 @@
+# ---- Secrets / local config ----
+*.local
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+agent.config.local.json
+
+# ---- Telemetry & session captures (privacy: may contain real driver names / user IDs) ----
+# Sample fixtures that are intentionally committed live under data/sample-sessions/ and are
+# whitelisted explicitly below. Everything else telemetry-shaped stays out of git history.
+*.ibt
+data/recordings/
+data/sessions/
+!data/sample-sessions/**
+
+# ---- .NET (agent) ----
+bin/
+obj/
+*.user
+
+# ---- Node / Next.js (web) ----
+node_modules/
+.next/
+out/
+dist/
+npm-debug.log*
+*.tsbuildinfo
+
+# ---- Next.js generated ----
+next-env.d.ts
+
+# ---- Local tooling ----
+.claude/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

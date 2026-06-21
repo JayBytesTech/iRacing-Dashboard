@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/iracing-engineer/layout.schema.json",
+  "title": "DashboardLayout",
+  "type": "object",
+  "required": [
+    "layoutId",
+    "name",
+    "version",
+    "widgets"
+  ],
+  "properties": {
+    "layoutId": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "target": {
+      "type": "string",
+      "enum": [
+        "endurance",
+        "spotter",
+        "driver",
+        "sprint",
+        "broadcast",
+        "custom"
+      ]
+    },
+    "widgets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "widgetId",
+          "type",
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "properties": {
+          "widgetId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "w": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "h": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
