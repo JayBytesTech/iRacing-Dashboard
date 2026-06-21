@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using IracingEngineer.Agent;
 using IracingEngineer.Strategy.Fuel;
+using IracingEngineer.TelemetryCore.SessionInfo;
 
 // Entry point for the local telemetry agent.
 //   1. load config   2. start HTTP + WebSocket host   3. start the telemetry source
@@ -23,18 +24,31 @@ var fuelTracker = new FuelStrategyTracker();
 ITelemetrySource source = new IRacingTelemetrySource(config);
 var iracingConnected = false;
 TelemetryFrame? latest = null;
+SessionInfoData? latestSession = null;
 var lastFrameAt = DateTimeOffset.UtcNow;
 
 source.ConnectionChanged += c => iracingConnected = c;
-source.SessionInfoReceived += builder.UpdateSessionInfo;
+source.SessionInfoReceived += info =>
+{
+    latestSession = info;
+    builder.UpdateSessionInfo(info);
+};
 source.FrameReceived += f =>
 {
     latest = f;
     lastFrameAt = DateTimeOffset.UtcNow;
-    // Race-remaining (laps/time) comes from SessionInfo; until that's wired, the tracker still yields
-    // burn rate and laps-of-fuel-aboard from telemetry alone.
-    fuelTracker.OnFrame(f, new RaceRemaining());
+    fuelTracker.OnFrame(f, ResolveRaceRemaining(f, latestSession));
 };
+
+// Remaining laps/time count down via telemetry; SessionInfo tells us which one bounds the race.
+static RaceRemaining ResolveRaceRemaining(TelemetryFrame f, SessionInfoData? session)
+{
+    var lapLimited = session?.IsLapLimited ?? false;
+    if (lapLimited && f.SessionLapsRemaining is { } laps) return new RaceRemaining(LapsRemaining: laps);
+    if (f.SessionTimeRemainingSec is { } secs) return new RaceRemaining(TimeRemainingSec: secs);
+    if (f.SessionLapsRemaining is { } fallbackLaps) return new RaceRemaining(LapsRemaining: fallbackLaps);
+    return new RaceRemaining();
+}
 
 var app = WebApplication.CreateBuilder(args).Build();
 app.UseWebSockets();

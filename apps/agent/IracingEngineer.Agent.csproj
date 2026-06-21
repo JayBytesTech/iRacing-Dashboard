@@ -20,6 +20,8 @@
   <ItemGroup>
     <!-- Pure race-strategy math, shared and unit-tested independently of iRacing. -->
     <ProjectReference Include="../../packages/strategy-engine/IracingEngineer.Strategy.csproj" />
+    <!-- Pure iRacing data normalization (SessionInfo YAML parsing), unit-tested separately. -->
+    <ProjectReference Include="../../packages/telemetry-core/IracingEngineer.TelemetryCore.csproj" />
   </ItemGroup>
 
 </Project>

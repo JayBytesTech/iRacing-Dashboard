@@ -1,18 +1,20 @@
+using IracingEngineer.TelemetryCore.SessionInfo;
+
 namespace IracingEngineer.Agent;
 
 /// <summary>
 /// Abstraction over "where telemetry comes from" so the rest of the agent never knows whether it
 /// is live or replayed. This is the keystone of replay-source-first development: build and test
-/// everything downstream on Linux against <see cref="IbtReplaySource"/>, then drop in the live
-/// source on the Windows sim PC with zero changes to the normalizer / hub / strategy engine.
+/// everything downstream on Linux against a replay source, then drop in the live source on the
+/// Windows sim PC with zero changes to the normalizer / hub / strategy engine.
 /// </summary>
 public interface ITelemetrySource : IAsyncDisposable
 {
     /// <summary>Raised on every telemetry tick with a raw, source-agnostic frame.</summary>
     event Action<TelemetryFrame>? FrameReceived;
 
-    /// <summary>Raised when the (slower-changing) SessionInfo YAML updates.</summary>
-    event Action<SessionInfoFrame>? SessionInfoReceived;
+    /// <summary>Raised when the (slower-changing) SessionInfo YAML updates, already parsed/normalized.</summary>
+    event Action<SessionInfoData>? SessionInfoReceived;
 
     /// <summary>Raised when the underlying connection state changes (connected / disconnected).</summary>
     event Action<bool>? ConnectionChanged;
@@ -33,18 +35,13 @@ public record TelemetryFrame(
     int? LapCompleted,
     double? LapDistPct,
     bool? OnPitRoad,
+    // Live race-remaining (counts down) — these come from telemetry vars, not SessionInfo YAML.
+    int? SessionLapsRemaining,
+    double? SessionTimeRemainingSec,
+    int? SessionNum,
     // Per-car arrays (index = carIdx). Inactive slots are null / filtered upstream.
     IReadOnlyList<int?>? CarIdxPosition,
     IReadOnlyList<int?>? CarIdxClassPosition,
     IReadOnlyList<int?>? CarIdxLap,
     IReadOnlyList<double?>? CarIdxLapDistPct,
     IReadOnlyList<bool?>? CarIdxOnPitRoad);
-
-/// <summary>Normalized slice of the SessionInfo YAML (driver list, track, session metadata).</summary>
-public record SessionInfoFrame(
-    string? TrackName,
-    string? SessionType,
-    int? SessionNum,
-    IReadOnlyDictionary<int, DriverEntry> Drivers);
-
-public record DriverEntry(int CarIdx, string CarNumber, string DriverName, string? TeamName, string? ClassName);

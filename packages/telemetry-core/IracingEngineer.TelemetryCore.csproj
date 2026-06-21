@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>IracingEngineer.TelemetryCore</RootNamespace>
+    <AssemblyName>IracingEngineer.TelemetryCore</AssemblyName>
+    <!-- Pure iRacing-data normalization (SessionInfo YAML parsing, etc.). No live-SDK / Windows
+         dependency, so it is fully unit-testable on Linux from raw YAML fixtures. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" Version="16.2.1" />
+  </ItemGroup>
+
+  <!-- Keep the test project's files out of the library build. -->
+  <ItemGroup>
+    <Compile Remove="tests/**/*.cs" />
+  </ItemGroup>
+
+</Project>

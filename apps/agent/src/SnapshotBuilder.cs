@@ -1,7 +1,9 @@
+using IracingEngineer.TelemetryCore.SessionInfo;
+
 namespace IracingEngineer.Agent;
 
 /// <summary>
-/// Turns raw <see cref="TelemetryFrame"/> + latest <see cref="SessionInfoFrame"/> into the
+/// Turns raw <see cref="TelemetryFrame"/> + latest <see cref="SessionInfoData"/> into the
 /// normalized <see cref="LiveSnapshot"/> the dashboard consumes. Pure mapping + unit conversion
 /// only — no I/O, no derived strategy (that lives in the strategy engine). Keeping it pure means it
 /// is unit-testable on Linux from recorded frames without iRacing.
@@ -9,11 +11,11 @@ namespace IracingEngineer.Agent;
 public sealed class SnapshotBuilder
 {
     private readonly PrivacyConfig _privacy;
-    private SessionInfoFrame? _session;
+    private SessionInfoData? _session;
 
     public SnapshotBuilder(PrivacyConfig privacy) => _privacy = privacy;
 
-    public void UpdateSessionInfo(SessionInfoFrame info) => _session = info;
+    public void UpdateSessionInfo(SessionInfoData info) => _session = info;
 
     public LiveSnapshot Build(
         TelemetryFrame f,
@@ -25,15 +27,15 @@ public sealed class SnapshotBuilder
 
         var session = new SessionState(
             SessionId: null,
-            TrackName: _session?.TrackName,
+            TrackName: _session?.TrackDisplayName,
             SessionType: _session?.SessionType,
-            SessionNum: _session?.SessionNum,
-            TimeRemainingSec: null,
-            LapsRemaining: null,
+            SessionNum: f.SessionNum ?? _session?.CurrentSessionNum,
+            TimeRemainingSec: f.SessionTimeRemainingSec,
+            LapsRemaining: f.SessionLapsRemaining,
             FlagState: null);
 
-        // playerCarIdx would come from SessionInfo (DriverInfo.DriverCarIdx) — left as 0 for skeleton.
-        const int playerCarIdx = 0;
+        // Player car index comes from SessionInfo (DriverInfo.DriverCarIdx); fall back to 0.
+        var playerCarIdx = _session?.PlayerCarIdx ?? 0;
         var player = BuildCar(playerCarIdx, f, isPlayer: true) with
         {
             SpeedKph = f.Speed is { } s ? Math.Round(s * 3.6, 1) : null, // m/s -> kph
@@ -65,8 +67,8 @@ public sealed class SnapshotBuilder
 
     private CarModel BuildCar(int carIdx, TelemetryFrame f, bool isPlayer)
     {
-        DriverEntry? driver = null;
-        if (_session?.Drivers.TryGetValue(carIdx, out var d) == true) driver = d;
+        SessionDriver? driver = null;
+        if (_session?.DriversByCarIdx.TryGetValue(carIdx, out var d) == true) driver = d;
         var name = driver?.DriverName;
         if (_privacy.MaskDriverNames) name = name is null ? null : $"Driver #{carIdx}";
 

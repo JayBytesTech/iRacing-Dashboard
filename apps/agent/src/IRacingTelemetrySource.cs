@@ -1,3 +1,5 @@
+using IracingEngineer.TelemetryCore.SessionInfo;
+
 namespace IracingEngineer.Agent;
 
 /// <summary>
@@ -18,7 +20,7 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
     private readonly AgentConfig _config;
 
     public event Action<TelemetryFrame>? FrameReceived;
-    public event Action<SessionInfoFrame>? SessionInfoReceived;
+    public event Action<SessionInfoData>? SessionInfoReceived;
     public event Action<bool>? ConnectionChanged;
 
     public IRacingTelemetrySource(AgentConfig config) => _config = config;
@@ -35,8 +37,12 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
         //   await client.Monitor(new TelemetryHandlers<MyVars>
         //   {
         //       OnConnectStateChanged = e => ConnectionChanged?.Invoke(e.State == ConnectState.Connected),
-        //       OnSessionInfoUpdate   = info => SessionInfoReceived?.Invoke(MapSessionInfo(info)),
-        //       OnTelemetryUpdate     = t   => FrameReceived?.Invoke(MapFrame(t)),
+        //       // Parse the raw SessionInfo YAML with the tested SessionInfoParser, then publish:
+        //       OnSessionInfoUpdate   = yaml => {
+        //           var data = SessionInfoParser.Parse(yaml, currentSessionNum);
+        //           if (data is not null) SessionInfoReceived?.Invoke(data);
+        //       },
+        //       OnTelemetryUpdate     = t   => FrameReceived?.Invoke(MapFrame(t)), // incl. SessionTimeRemain / SessionLapsRemainEx
         //       OnError               = ex  => log.Error(ex, "telemetry source error"),
         //   }, ct);
         //
