@@ -5,6 +5,7 @@ import { SessionHeader } from '@/components/SessionHeader';
 import { FuelWidget } from '@/components/FuelWidget';
 import { RelativeWidget } from '@/components/RelativeWidget';
 import { LeaderboardWidget } from '@/components/LeaderboardWidget';
+import { TrackMapWidget } from '@/components/TrackMapWidget';
 import { num } from '@/lib/format';
 
 // Live dashboard. Connection banner + session header + fuel strategy + a glanceable car card.
@@ -57,9 +58,11 @@ export default function LivePage() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            <TrackMapWidget player={snapshot.player} cars={snapshot.cars} />
             <RelativeWidget player={snapshot.player} cars={snapshot.cars} />
-            <LeaderboardWidget player={snapshot.player} cars={snapshot.cars} />
           </div>
+
+          <LeaderboardWidget player={snapshot.player} cars={snapshot.cars} />
         </>
       ) : (
         <p style={{ opacity: 0.6 }}>Waiting for the agent… start it with <code>node tools/mock-agent/mock-agent.mjs</code>.</p>
