@@ -15,7 +15,11 @@ public sealed class SnapshotBuilder
 
     public void UpdateSessionInfo(SessionInfoFrame info) => _session = info;
 
-    public LiveSnapshot Build(TelemetryFrame f, bool iracingConnected, long dataAgeMs)
+    public LiveSnapshot Build(
+        TelemetryFrame f,
+        bool iracingConnected,
+        long dataAgeMs,
+        IracingEngineer.Strategy.Fuel.FuelEstimate? fuel = null)
     {
         var connection = new ConnectionState(iracingConnected, f.IsOnTrack, f.IsReplayPlaying, dataAgeMs);
 
@@ -55,7 +59,8 @@ public sealed class SnapshotBuilder
             }
         }
 
-        return new LiveSnapshot(connection, session, player, cars, Strategy: null, Events: Array.Empty<object>());
+        var strategy = fuel is null ? null : new { fuel };
+        return new LiveSnapshot(connection, session, player, cars, strategy, Events: Array.Empty<object>());
     }
 
     private CarModel BuildCar(int carIdx, TelemetryFrame f, bool isPlayer)

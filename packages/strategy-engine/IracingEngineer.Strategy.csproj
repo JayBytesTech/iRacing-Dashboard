@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>IracingEngineer.Strategy</RootNamespace>
+    <AssemblyName>IracingEngineer.Strategy</AssemblyName>
+    <!-- Pure, deterministic race-strategy math. No iRacing dependency, no I/O — so it is fully
+         unit-testable on Linux without the sim. The agent feeds it normalized lap history. -->
+  </PropertyGroup>
+
+  <!-- The test project lives in tests/ under this dir; keep its files out of the library build. -->
+  <ItemGroup>
+    <Compile Remove="tests/**/*.cs" />
+  </ItemGroup>
+
+</Project>

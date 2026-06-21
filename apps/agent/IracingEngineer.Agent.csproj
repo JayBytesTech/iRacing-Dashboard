@@ -17,4 +17,9 @@
     <PackageReference Include="SVappsLAB.iRacingTelemetrySDK" Version="0.9.8.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Pure race-strategy math, shared and unit-tested independently of iRacing. -->
+    <ProjectReference Include="../../packages/strategy-engine/IracingEngineer.Strategy.csproj" />
+  </ItemGroup>
+
 </Project>
