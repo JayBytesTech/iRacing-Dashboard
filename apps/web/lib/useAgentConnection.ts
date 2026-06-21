@@ -1,27 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { SnapshotPayload } from './contracts';
 
-// Minimal typing of the contract the agent emits. The full set lives in
-// packages/telemetry-contracts; these will eventually be generated from the JSON Schemas.
-export interface LiveSnapshot {
-  type: 'liveSnapshot';
-  sequence: number;
-  timestamp: string;
-  payload: {
-    connection: { iracingConnected: boolean; dataAgeMs: number };
-    session: { trackName: string | null; timeRemainingSec: number | null; flagState: string | null };
-    player: {
-      carIdx: number;
-      lap: number | null;
-      lapDistPct: number | null;
-      speedKph: number | null;
-      fuelLevelLiters: number | null;
-    };
-    cars: unknown[];
-  };
-}
-
+export type { SnapshotPayload } from './contracts';
 export type AgentStatus = 'connecting' | 'live' | 'stale' | 'disconnected';
 
 const STALE_MS = 1000;
@@ -33,7 +15,7 @@ const DISCONNECT_MS = 3000;
  * frozen socket can't masquerade as live (see ConnectionBanner rules in the dashboard spec).
  */
 export function useAgentConnection(agentUrl: string) {
-  const [snapshot, setSnapshot] = useState<LiveSnapshot['payload'] | null>(null);
+  const [snapshot, setSnapshot] = useState<SnapshotPayload | null>(null);
   const [status, setStatus] = useState<AgentStatus>('connecting');
   const lastMsgAt = useRef<number>(0);
 

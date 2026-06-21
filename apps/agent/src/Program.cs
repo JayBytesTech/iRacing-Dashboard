@@ -15,6 +15,9 @@ var jsonOptions = new JsonSerializerOptions
 {
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    // Serialize enums (FuelStatus, FuelConfidence, …) as their names, e.g. "Safe"/"Medium", so the
+    // dashboard reads them directly instead of magic integers.
+    Converters = { new JsonStringEnumConverter() },
 };
 
 var hub = new WebSocketHub(jsonOptions);

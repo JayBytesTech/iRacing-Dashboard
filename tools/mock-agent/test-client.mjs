@@ -50,9 +50,13 @@ req.on('upgrade', (res, socket) => {
         const msg = JSON.parse(payload);
         if (msg.type === 'liveSnapshot') {
           const p = msg.player ?? msg.payload?.player;
+          const fuel = msg.payload?.strategy?.fuel;
+          const fuelStr = fuel
+            ? `  [fuel ${fuel.status}/${fuel.confidence} toAdd=${fuel.fuelToAddAtNextStopLiters}L lapsLeft=${msg.payload.session.lapsRemaining}]`
+            : '';
           console.log(
             `seq ${msg.sequence}  ${msg.type}  lap=${p.lap} dist=${p.lapDistPct} ` +
-              `speed=${p.speedKph}kph fuel=${p.fuelLevelLiters}L cars=${msg.payload.cars.length}`,
+              `speed=${p.speedKph}kph fuel=${p.fuelLevelLiters}L cars=${msg.payload.cars.length}${fuelStr}`,
           );
           if (++seen >= MAX_FRAMES) {
             console.log(`\n[client] OK — received ${seen} liveSnapshot frames, contract looks valid.`);

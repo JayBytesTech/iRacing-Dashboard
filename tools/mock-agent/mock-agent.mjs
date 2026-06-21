@@ -28,7 +28,12 @@ const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'; // RFC 6455 magic string
 // A simple endurance-ish loop: fuel burns down, the car laps the track, a couple of AI cars move.
 const startedAt = Date.now();
 let sequence = 0;
-const player = { carIdx: 12, fuel: 60.0, lap: 1, lapDistPct: 0.0, lapTimeSec: 105 };
+const TOTAL_LAPS = 30;
+const BURN_PER_LAP = 2.65;
+// Start a few laps into a stint so the fuel estimate is already populated (a fresh start would sit in
+// the "gathering clean laps" state for ~2 laps). Fuel reflects laps already burned.
+const START_LAP = 6;
+const player = { carIdx: 12, fuel: 60.0 - (START_LAP - 1) * BURN_PER_LAP, lap: START_LAP, lapDistPct: 0.0, lapTimeSec: 105 };
 const others = [
   { carIdx: 7, className: 'GT3', offset: 0.18, lap: 1 },
   { carIdx: 22, className: 'GTP', offset: 0.55, lap: 1 },
@@ -41,7 +46,7 @@ function tick(dtSec) {
   if (player.lapDistPct >= 1) {
     player.lapDistPct -= 1;
     player.lap += 1;
-    player.fuel = Math.max(0, player.fuel - 2.65); // ~2.65 L/lap
+    player.fuel = Math.max(0, player.fuel - BURN_PER_LAP);
   }
   for (const c of others) {
     c.lapDistPct = (player.lapDistPct + c.offset) % 1;
@@ -60,6 +65,48 @@ function car(carIdx, extra) {
   };
 }
 
+// A simplified stand-in for the real C# FuelModel output, in the same contract shape, so the
+// dashboard's FuelWidget has live data to render before the real agent exists.
+function fuelEstimate() {
+  const lapsToGo = Math.max(0, TOTAL_LAPS - player.lap);
+  const lapsAboard = player.fuel / BURN_PER_LAP;
+  const toFinish = lapsToGo * BURN_PER_LAP;
+  const delta = player.fuel - toFinish;
+  const toAdd = Math.max(0, toFinish - player.fuel);
+  const headroom = lapsAboard - lapsToGo;
+  const status =
+    lapsAboard < 2 ? 'Critical' : headroom < 0 ? 'PitRequired' : headroom < 1 ? 'Marginal' : 'Safe';
+  const sample = Math.min(player.lap - 1, 8);
+  // Mirror the real FuelModel: with no clean laps there is no estimate at all (status Unknown).
+  if (sample < 1) {
+    return {
+      fuelBurnPerLapLiters: null,
+      sampleLapCount: 0,
+      estimatedLapsRemaining: null,
+      raceLapsToGo: lapsToGo,
+      fuelToFinishLiters: null,
+      fuelDeltaToFinishLiters: null,
+      fuelToAddAtNextStopLiters: null,
+      pitWindowOpen: false,
+      confidence: 'Low',
+      status: 'Unknown',
+    };
+  }
+  const confidence = sample >= 6 ? 'High' : sample >= 3 ? 'Medium' : 'Low';
+  return {
+    fuelBurnPerLapLiters: BURN_PER_LAP,
+    sampleLapCount: Math.max(0, sample),
+    estimatedLapsRemaining: Number(lapsAboard.toFixed(2)),
+    raceLapsToGo: lapsToGo,
+    fuelToFinishLiters: Number(toFinish.toFixed(2)),
+    fuelDeltaToFinishLiters: Number(delta.toFixed(2)),
+    fuelToAddAtNextStopLiters: Number(toAdd.toFixed(2)),
+    pitWindowOpen: lapsAboard < lapsToGo,
+    confidence,
+    status,
+  };
+}
+
 function snapshotPayload() {
   const speedKph = 150 + 60 * Math.sin(player.lapDistPct * Math.PI * 4); // fake corners/straights
   const rpm = 5000 + 3000 * Math.abs(Math.sin(player.lapDistPct * Math.PI * 4));
@@ -70,8 +117,8 @@ function snapshotPayload() {
       trackName: 'Watkins Glen International (mock)',
       sessionType: 'Race',
       sessionNum: 0,
-      timeRemainingSec: Math.max(0, 7200 - (Date.now() - startedAt) / 1000),
-      lapsRemaining: null,
+      timeRemainingSec: null,
+      lapsRemaining: Math.max(0, TOTAL_LAPS - player.lap),
       flagState: 'green',
     },
     player: car(player.carIdx, {
@@ -90,7 +137,7 @@ function snapshotPayload() {
     cars: others.map((c) =>
       car(c.carIdx, { className: c.className, lap: player.lap, lapDistPct: Number(c.lapDistPct.toFixed(4)) }),
     ),
-    strategy: {},
+    strategy: { fuel: fuelEstimate() },
     events: [],
   };
 }
