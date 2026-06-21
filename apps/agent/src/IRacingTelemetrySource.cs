@@ -1,55 +1,113 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using SVappsLAB.iRacingTelemetrySDK;
 using IracingEngineer.TelemetryCore.SessionInfo;
 
 namespace IracingEngineer.Agent;
 
 /// <summary>
-/// Adapter over SVappsLAB.iRacingTelemetrySDK. The SDK exposes ONE API for both live telemetry and
-/// .ibt file playback (see https://github.com/SVappsLAB/iRacingTelemetrySDK), so this single class
-/// covers both modes — choose by config:
-///   - mode "ibt"  -> playback of a recorded .ibt file (cross-platform: Linux/macOS/Windows)
-///   - mode "live" -> live shared-memory telemetry (Windows-only)
+/// The one place that touches the SVappsLAB SDK. It exposes the same <see cref="ITelemetrySource"/>
+/// the rest of the agent already consumes, so nothing downstream knows whether data is live or
+/// replayed. Selected by config:
+///   - mode "ibt"  -> playback of a recorded .ibt file (cross-platform; dev on Linux)
+///   - mode "live" -> live shared-memory telemetry (Windows only)
 ///
-/// NOTE: this is the one file that depends on the SDK surface. It is intentionally the *only* place
-/// to touch when wiring the real SDK on the first Windows pull. The SDK uses a source generator to
-/// produce a typed telemetry struct from a [RequiredTelemetryVars] attribute; wire that struct's
-/// fields into TelemetryFrame below. Everything downstream consumes ITelemetrySource and is already
-/// testable on Linux via the mock agent / IbtReplaySource.
+/// The SDK's source generator turns the [RequiredTelemetryVars] list below into a strongly-typed
+/// <c>TelemetryData</c> struct. Building this project therefore requires the .NET 10 SDK (the
+/// generator needs Roslyn 5.0); the target framework itself is still net8.0.
 /// </summary>
+[RequiredTelemetryVars([
+    TelemetryVar.IsOnTrack, TelemetryVar.IsReplayPlaying, TelemetryVar.SessionNum,
+    TelemetryVar.SessionTime, TelemetryVar.SessionTimeRemain, TelemetryVar.SessionLapsRemainEx,
+    TelemetryVar.Speed, TelemetryVar.Gear, TelemetryVar.RPM, TelemetryVar.FuelLevel,
+    TelemetryVar.Lap, TelemetryVar.LapCompleted, TelemetryVar.LapDistPct, TelemetryVar.OnPitRoad,
+    TelemetryVar.CarIdxPosition, TelemetryVar.CarIdxClassPosition, TelemetryVar.CarIdxLap,
+    TelemetryVar.CarIdxLapCompleted, TelemetryVar.CarIdxLapDistPct, TelemetryVar.CarIdxOnPitRoad,
+    TelemetryVar.CarIdxEstTime,
+])]
 public sealed class IRacingTelemetrySource : ITelemetrySource
 {
     private readonly AgentConfig _config;
+    private readonly ILogger _logger;
+    private int? _lastSessionNum;
 
     public event Action<TelemetryFrame>? FrameReceived;
     public event Action<SessionInfoData>? SessionInfoReceived;
     public event Action<bool>? ConnectionChanged;
 
-    public IRacingTelemetrySource(AgentConfig config) => _config = config;
-
-    public Task RunAsync(CancellationToken ct)
+    public IRacingTelemetrySource(AgentConfig config, ILogger? logger = null)
     {
-        // TODO(first-windows-pull): instantiate the SVappsLAB TelemetryClient and call Monitor()
-        // with TelemetryHandlers wired to the events below:
-        //
-        //   var client = mode == "ibt"
-        //       ? TelemetryClient<MyVars>.Create(logger, ibtOptions: new IBTOptions(_config.Telemetry.IbtPath))
-        //       : TelemetryClient<MyVars>.Create(logger);            // live (Windows)
-        //
-        //   await client.Monitor(new TelemetryHandlers<MyVars>
-        //   {
-        //       OnConnectStateChanged = e => ConnectionChanged?.Invoke(e.State == ConnectState.Connected),
-        //       // Parse the raw SessionInfo YAML with the tested SessionInfoParser, then publish:
-        //       OnSessionInfoUpdate   = yaml => {
-        //           var data = SessionInfoParser.Parse(yaml, currentSessionNum);
-        //           if (data is not null) SessionInfoReceived?.Invoke(data);
-        //       },
-        //       OnTelemetryUpdate     = t   => FrameReceived?.Invoke(MapFrame(t)), // incl. SessionTimeRemain / SessionLapsRemainEx
-        //       OnError               = ex  => log.Error(ex, "telemetry source error"),
-        //   }, ct);
-        //
-        // Until then, RunAsync is a no-op so the agent boots and serves /status. Use IbtReplaySource
-        // (or the Node mock-agent) for the live data path during Linux development.
-        return Task.CompletedTask;
+        _config = config;
+        _logger = logger ?? NullLogger.Instance;
     }
+
+    public async Task RunAsync(CancellationToken ct)
+    {
+        var ibt = _config.Telemetry.Mode == "ibt" && !string.IsNullOrWhiteSpace(_config.Telemetry.IbtPath)
+            ? new IBTOptions(_config.Telemetry.IbtPath!, int.MaxValue) // replay as fast as possible
+            : null;
+
+        await using var client = ibt is null
+            ? TelemetryClient<TelemetryData>.Create(_logger)        // live (Windows shared memory)
+            : TelemetryClient<TelemetryData>.Create(_logger, ibt);  // .ibt playback (cross-platform)
+
+        var handlers = new TelemetryHandlers<TelemetryData>
+        {
+            OnConnectStateChanged = state =>
+            {
+                ConnectionChanged?.Invoke(state == ConnectState.Connected);
+                return Task.CompletedTask;
+            },
+            // Parse the raw SessionInfo YAML with our own tested parser rather than the SDK's model.
+            OnRawSessionInfoUpdate = yaml =>
+            {
+                var data = SessionInfoParser.Parse(yaml, _lastSessionNum);
+                if (data is not null) SessionInfoReceived?.Invoke(data);
+                return Task.CompletedTask;
+            },
+            OnTelemetryUpdate = t =>
+            {
+                _lastSessionNum = t.SessionNum;
+                FrameReceived?.Invoke(MapFrame(t));
+                return Task.CompletedTask;
+            },
+            OnError = ex =>
+            {
+                _logger.LogError(ex, "iRacing telemetry error");
+                return Task.CompletedTask;
+            },
+        };
+
+        await client.Monitor(handlers, ct);
+    }
+
+    /// <summary>Projects the generated SDK struct onto our source-agnostic <see cref="TelemetryFrame"/>.</summary>
+    private static TelemetryFrame MapFrame(TelemetryData t) => new(
+        SessionTimeMs: (long)((t.SessionTime ?? 0) * 1000),
+        IsOnTrack: t.IsOnTrack ?? false,
+        IsReplayPlaying: t.IsReplayPlaying ?? false,
+        Speed: t.Speed,             // m/s; SnapshotBuilder converts to kph
+        Gear: t.Gear,
+        Rpm: t.RPM,
+        FuelLevel: t.FuelLevel,     // litres
+        Lap: t.Lap,
+        LapCompleted: t.LapCompleted,
+        LapDistPct: t.LapDistPct,
+        OnPitRoad: t.OnPitRoad,
+        SessionLapsRemaining: t.SessionLapsRemainEx,
+        SessionTimeRemainingSec: t.SessionTimeRemain,
+        SessionNum: t.SessionNum,
+        CarIdxPosition: Nullable(t.CarIdxPosition),
+        CarIdxClassPosition: Nullable(t.CarIdxClassPosition),
+        CarIdxLap: Nullable(t.CarIdxLap),
+        CarIdxLapDistPct: Nullable(t.CarIdxLapDistPct),
+        CarIdxOnPitRoad: Nullable(t.CarIdxOnPitRoad));
+
+    // The SDK exposes per-car arrays with non-nullable elements; our frame model uses nullable
+    // elements so a missing slot is explicit. (-1 padding is filtered downstream in SnapshotBuilder.)
+    private static IReadOnlyList<int?>? Nullable(int[]? a) => a?.Select(x => (int?)x).ToList();
+    private static IReadOnlyList<double?>? Nullable(float[]? a) => a?.Select(x => (double?)x).ToList();
+    private static IReadOnlyList<bool?>? Nullable(bool[]? a) => a?.Select(x => (bool?)x).ToList();
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using IracingEngineer.Agent;
 using IracingEngineer.Strategy.Fuel;
 using IracingEngineer.TelemetryCore.SessionInfo;
@@ -24,7 +25,8 @@ var hub = new WebSocketHub(jsonOptions);
 var builder = new SnapshotBuilder(config.Privacy);
 var fuelTracker = new FuelStrategyTracker();
 
-ITelemetrySource source = new IRacingTelemetrySource(config);
+using var telemetryLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
+ITelemetrySource source = new IRacingTelemetrySource(config, telemetryLoggerFactory.CreateLogger("iracing"));
 var iracingConnected = false;
 TelemetryFrame? latest = null;
 SessionInfoData? latestSession = null;

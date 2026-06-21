@@ -13,8 +13,11 @@
 
   <ItemGroup>
     <!-- Unified live + .ibt playback API, cross-platform for playback, Apache-2.0.
-         https://github.com/SVappsLAB/iRacingTelemetrySDK  (pin a real version before first build) -->
-    <PackageReference Include="SVappsLAB.iRacingTelemetrySDK" Version="0.9.8.1" />
+         https://github.com/SVappsLAB/iRacingTelemetrySDK
+         NOTE: 2.0.0's source generator requires the .NET 10 SDK (Roslyn 5.0) to BUILD this project.
+         The target framework stays net8.0; only the build toolchain needs to be 10.x. -->
+    <PackageReference Include="SVappsLAB.iRacingTelemetrySDK" Version="2.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup>
