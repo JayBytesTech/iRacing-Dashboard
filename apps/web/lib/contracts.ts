@@ -28,27 +28,39 @@ export interface SessionState {
   flagState: string | null;
 }
 
-export interface PlayerCar {
+export interface Car {
   carIdx: number;
   carNumber: string | null;
   driverName: string | null;
+  teamName: string | null;
   className: string | null;
+  classId: number | null;
   position: number | null;
   classPosition: number | null;
   lap: number | null;
+  lapCompleted: number | null;
   lapDistPct: number | null;
-  speedKph: number | null;
-  gear: number | null;
-  rpm: number | null;
-  fuelLevelLiters: number | null;
+  lastLapTimeSec: number | null;
+  bestLapTimeSec: number | null;
+  /** CarIdxEstTime — estimated time from S/F to the car's current track position. */
+  estTimeToCurrentLocationSec: number | null;
   onPitRoad: boolean | null;
+  isPlayer: boolean | null;
+  // Player-only live inputs (null on other cars).
+  speedKph?: number | null;
+  gear?: number | null;
+  rpm?: number | null;
+  fuelLevelLiters?: number | null;
 }
+
+/** Back-compat alias: the player is just a Car. */
+export type PlayerCar = Car;
 
 export interface SnapshotPayload {
   connection: { iracingConnected: boolean; dataAgeMs: number };
   session: SessionState;
-  player: PlayerCar;
-  cars: unknown[];
+  player: Car;
+  cars: Car[];
   strategy: { fuel?: FuelEstimate } | null;
   events: unknown[];
 }

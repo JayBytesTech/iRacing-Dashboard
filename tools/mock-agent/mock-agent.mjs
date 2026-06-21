@@ -34,10 +34,16 @@ const BURN_PER_LAP = 2.65;
 // the "gathering clean laps" state for ~2 laps). Fuel reflects laps already burned.
 const START_LAP = 6;
 const player = { carIdx: 12, fuel: 60.0 - (START_LAP - 1) * BURN_PER_LAP, lap: START_LAP, lapDistPct: 0.0, lapTimeSec: 105 };
+// A small multi-class field. `offset` places each car relative to the player on track (in lap
+// fraction; +ahead/-behind); `lapOffset` lets a car be a lap up/down to exercise lapped traffic.
+// Names are fabricated (not real PII) so the leaderboard looks realistic.
 const others = [
-  { carIdx: 7, className: 'GT3', offset: 0.18, lap: 1 },
-  { carIdx: 22, className: 'GTP', offset: 0.55, lap: 1 },
-  { carIdx: 3, className: 'GT3', offset: 0.82, lap: 1 },
+  { carIdx: 22, num: '22', name: 'A. Rossi',   team: 'Vapor GTP',        cls: 'GTP', clsId: 4011, pos: 1, clsPos: 1, lapTime: 92.1,  best: 91.4,  offset: 0.40,  lapOffset: 0,  pit: false },
+  { carIdx: 5,  num: '5',  name: 'K. Tanaka',  team: 'Nishi Motorsport', cls: 'GTP', clsId: 4011, pos: 2, clsPos: 2, lapTime: 92.6,  best: 91.9,  offset: 0.63,  lapOffset: 0,  pit: false },
+  { carIdx: 7,  num: '7',  name: 'M. Delgado', team: 'Crest GT',         cls: 'GT3', clsId: 2708, pos: 4, clsPos: 2, lapTime: 105.5, best: 105.0, offset: 0.05,  lapOffset: 0,  pit: false },
+  { carIdx: 3,  num: '3',  name: 'L. Berg',    team: 'Northpoint',       cls: 'GT3', clsId: 2708, pos: 5, clsPos: 3, lapTime: 105.9, best: 105.3, offset: -0.04, lapOffset: 0,  pit: false },
+  { carIdx: 11, num: '11', name: 'S. Okafor',  team: 'Vantage',          cls: 'GT3', clsId: 2708, pos: 6, clsPos: 4, lapTime: 106.3, best: 105.6, offset: 0.78,  lapOffset: 0,  pit: true  },
+  { carIdx: 9,  num: '9',  name: 'D. Morel',   team: 'Ardent',           cls: 'GT3', clsId: 2708, pos: 7, clsPos: 5, lapTime: 106.1, best: 105.5, offset: -0.18, lapOffset: -1, pit: false },
 ];
 
 function tick(dtSec) {
@@ -49,9 +55,10 @@ function tick(dtSec) {
     player.fuel = Math.max(0, player.fuel - BURN_PER_LAP);
   }
   for (const c of others) {
-    c.lapDistPct = (player.lapDistPct + c.offset) % 1;
+    c.lapDistPct = (player.lapDistPct + c.offset + 1) % 1; // +1 keeps negative offsets in [0,1)
   }
 }
+tick(0); // seed each car's starting track position
 
 function car(carIdx, extra) {
   return {
@@ -123,19 +130,41 @@ function snapshotPayload() {
     },
     player: car(player.carIdx, {
       isPlayer: true,
+      carNumber: '42',
+      driverName: 'You',
+      teamName: 'JayBytes Racing',
       className: 'GT3',
-      position: 8,
-      classPosition: 4,
+      classId: 2708,
+      position: 3,
+      classPosition: 1,
       lap: player.lap,
       lapCompleted: player.lap - 1,
       lapDistPct: Number(player.lapDistPct.toFixed(4)),
+      lastLapTimeSec: 105.2,
+      bestLapTimeSec: 104.8,
+      estTimeToCurrentLocationSec: Number((player.lapDistPct * player.lapTimeSec).toFixed(2)),
       speedKph: Number(speedKph.toFixed(1)),
       gear: Math.min(6, Math.max(1, Math.round(speedKph / 35))),
       rpm: Number(rpm.toFixed(0)),
       fuelLevelLiters: Number(player.fuel.toFixed(2)),
     }),
     cars: others.map((c) =>
-      car(c.carIdx, { className: c.className, lap: player.lap, lapDistPct: Number(c.lapDistPct.toFixed(4)) }),
+      car(c.carIdx, {
+        carNumber: c.num,
+        driverName: c.name,
+        teamName: c.team,
+        className: c.cls,
+        classId: c.clsId,
+        position: c.pos,
+        classPosition: c.clsPos,
+        lap: player.lap + c.lapOffset,
+        lapCompleted: player.lap + c.lapOffset - 1,
+        lapDistPct: Number(c.lapDistPct.toFixed(4)),
+        lastLapTimeSec: c.lapTime,
+        bestLapTimeSec: c.best,
+        estTimeToCurrentLocationSec: Number((c.lapDistPct * c.lapTime).toFixed(2)),
+        onPitRoad: c.pit,
+      }),
     ),
     strategy: { fuel: fuelEstimate() },
     events: [],

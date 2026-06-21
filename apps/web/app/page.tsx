@@ -3,6 +3,8 @@
 import { useAgentConnection, type AgentStatus } from '@/lib/useAgentConnection';
 import { SessionHeader } from '@/components/SessionHeader';
 import { FuelWidget } from '@/components/FuelWidget';
+import { RelativeWidget } from '@/components/RelativeWidget';
+import { LeaderboardWidget } from '@/components/LeaderboardWidget';
 import { num } from '@/lib/format';
 
 // Live dashboard. Connection banner + session header + fuel strategy + a glanceable car card.
@@ -52,6 +54,11 @@ export default function LivePage() {
               <Stat label="Lap" value={p?.lap != null ? String(p.lap) : '—'} />
               <Stat label="Lap %" value={p?.lapDistPct != null ? (p.lapDistPct * 100).toFixed(0) : '—'} unit="%" />
             </section>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            <RelativeWidget player={snapshot.player} cars={snapshot.cars} />
+            <LeaderboardWidget player={snapshot.player} cars={snapshot.cars} />
           </div>
         </>
       ) : (
