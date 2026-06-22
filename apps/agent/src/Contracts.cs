@@ -68,6 +68,9 @@ public record CarModel(
     int? Lap = null,
     int? LapCompleted = null,
     double? LapDistPct = null,
+    // CarIdxEstTime: seconds from S/F to this car's current track position (iRacing's own estimate).
+    // The web relative widget uses this for true gap-in-seconds; null falls back to a lapDistPct estimate.
+    double? EstTimeToCurrentLocationSec = null,
     double? SpeedKph = null,
     int? Gear = null,
     double? Rpm = null,

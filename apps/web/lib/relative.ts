@@ -20,6 +20,27 @@ function wrapFraction(delta: number): number {
   return x;
 }
 
+/** Wrap a time delta into [-lap/2, lap/2] (nearest way around the loop) so S/F crossings don't read as a full lap. */
+function wrapTime(delta: number, lap: number): number {
+  return delta - lap * Math.round(delta / lap);
+}
+
+/**
+ * Signed gap (seconds) from the player to a car, positive = ahead on track. Prefers iRacing's
+ * CarIdxEstTime (seconds from S/F to each car's position) which captures non-uniform speed around the
+ * lap; falls back to a lapDistPct x lap-time estimate when est-time isn't available (e.g. .ibt replay
+ * or older recordings).
+ */
+function gapSeconds(player: Car, c: Car, refLap: number): number | null {
+  if (player.estTimeToCurrentLocationSec != null && c.estTimeToCurrentLocationSec != null) {
+    return wrapTime(c.estTimeToCurrentLocationSec - player.estTimeToCurrentLocationSec, refLap);
+  }
+  if (player.lapDistPct != null && c.lapDistPct != null) {
+    return wrapFraction(c.lapDistPct - player.lapDistPct) * refLap;
+  }
+  return null;
+}
+
 export function computeRelative(
   player: Car,
   cars: Car[],
@@ -27,15 +48,16 @@ export function computeRelative(
 ): { ahead: RelativeEntry[]; behind: RelativeEntry[] } {
   const count = opts?.count ?? 4;
   const refLap = opts?.refLapTimeSec ?? player.bestLapTimeSec ?? player.lastLapTimeSec ?? 100;
-  if (player.lapDistPct == null) return { ahead: [], behind: [] };
+  if (player.lapDistPct == null && player.estTimeToCurrentLocationSec == null) return { ahead: [], behind: [] };
 
   const entries: RelativeEntry[] = [];
   for (const c of cars) {
-    if (c.isPlayer || c.lapDistPct == null) continue;
-    const frac = wrapFraction(c.lapDistPct - player.lapDistPct);
+    if (c.isPlayer) continue;
+    const gap = gapSeconds(player, c, refLap);
+    if (gap == null) continue;
     entries.push({
       car: c,
-      gapSeconds: frac * refLap,
+      gapSeconds: gap,
       lapsDiff: (c.lap ?? 0) - (player.lap ?? 0),
     });
   }

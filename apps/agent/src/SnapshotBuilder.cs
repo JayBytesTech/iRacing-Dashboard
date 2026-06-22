@@ -92,7 +92,9 @@ public sealed class SnapshotBuilder
             Position: At(f.CarIdxPosition, carIdx),
             ClassPosition: At(f.CarIdxClassPosition, carIdx),
             Lap: At(f.CarIdxLap, carIdx),
+            LapCompleted: At(f.CarIdxLapCompleted, carIdx),
             LapDistPct: At(f.CarIdxLapDistPct, carIdx),
+            EstTimeToCurrentLocationSec: At(f.CarIdxEstTime, carIdx),
             OnPitRoad: At(f.CarIdxOnPitRoad, carIdx),
             IsPlayer: isPlayer);
     }

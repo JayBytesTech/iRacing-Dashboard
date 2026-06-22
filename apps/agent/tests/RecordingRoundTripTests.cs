@@ -44,7 +44,9 @@ public class RecordingRoundTripTests
         CarIdxClassPosition: new int?[] { 1, 1, 2 },
         CarIdxLap: new int?[] { 5, 5, 4 },
         CarIdxLapDistPct: new double?[] { 0.42, 0.55, 0.10 },
-        CarIdxOnPitRoad: new bool?[] { false, false, true });
+        CarIdxOnPitRoad: new bool?[] { false, false, true },
+        CarIdxLapCompleted: new int?[] { 4, 4, 3 },
+        CarIdxEstTime: new double?[] { 42.0, 55.0, 10.0 });
 
     [Fact]
     public async Task Recording_round_trips_the_whole_field_and_session()
@@ -87,6 +89,8 @@ public class RecordingRoundTripTests
         Assert.Equal(new int?[] { 1, 1, 2 }, f.CarIdxClassPosition);
         Assert.Equal(new double?[] { 0.42, 0.55, 0.10 }, f.CarIdxLapDistPct);
         Assert.Equal(new bool?[] { false, false, true }, f.CarIdxOnPitRoad);
+        Assert.Equal(new int?[] { 4, 4, 3 }, f.CarIdxLapCompleted);
+        Assert.Equal(new double?[] { 42.0, 55.0, 10.0 }, f.CarIdxEstTime);
         // Player scalars too.
         Assert.Equal(60.0, f.FuelLevel);
         Assert.Equal(0.42, f.LapDistPct);

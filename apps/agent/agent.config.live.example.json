@@ -1,0 +1,10 @@
+{
+  "server": { "host": "0.0.0.0", "port": 5174, "allowLan": true },
+  "telemetry": {
+    "uiSnapshotHz": 5,
+    "mode": "live",
+    "recordSession": true,
+    "recordHz": 10
+  },
+  "privacy": { "maskDriverNames": false, "storeRawSessionInfo": false }
+}

@@ -124,7 +124,9 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
         CarIdxClassPosition: Nullable(t.CarIdxClassPosition),
         CarIdxLap: Nullable(t.CarIdxLap),
         CarIdxLapDistPct: Nullable(t.CarIdxLapDistPct),
-        CarIdxOnPitRoad: Nullable(t.CarIdxOnPitRoad));
+        CarIdxOnPitRoad: Nullable(t.CarIdxOnPitRoad),
+        CarIdxLapCompleted: Nullable(t.CarIdxLapCompleted),
+        CarIdxEstTime: Nullable(t.CarIdxEstTime));
 
     // The SDK exposes per-car arrays with non-nullable elements; our frame model uses nullable
     // elements so a missing slot is explicit. (-1 padding is filtered downstream in SnapshotBuilder.)

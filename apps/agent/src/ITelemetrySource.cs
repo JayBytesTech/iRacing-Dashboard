@@ -48,4 +48,11 @@ public record TelemetryFrame(
     IReadOnlyList<int?>? CarIdxClassPosition,
     IReadOnlyList<int?>? CarIdxLap,
     IReadOnlyList<double?>? CarIdxLapDistPct,
-    IReadOnlyList<bool?>? CarIdxOnPitRoad);
+    IReadOnlyList<bool?>? CarIdxOnPitRoad,
+    // CarIdxLapCompleted = last fully-completed lap per car (sharper lapped/blue-flag detection than
+    // CarIdxLap, which increments at S/F). CarIdxEstTime = iRacing's own estimate of seconds from S/F
+    // to each car's current track position — the proper input for relative gap-in-seconds (it accounts
+    // for non-uniform speed around the lap, unlike lapDistPct x lap-time). Both default null so older
+    // recordings (which lack them) still deserialize.
+    IReadOnlyList<int?>? CarIdxLapCompleted = null,
+    IReadOnlyList<double?>? CarIdxEstTime = null);

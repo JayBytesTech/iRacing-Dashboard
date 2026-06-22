@@ -91,4 +91,28 @@ describe('computeRelative', () => {
     const { ahead } = computeRelative(player, [car(2, 0.25)], { refLapTimeSec: 80 });
     expect(ahead[0].gapSeconds).toBeCloseTo(20, 5); // 0.25 * 80
   });
+
+  // --- CarIdxEstTime path (live): exact seconds, not a lapDistPct estimate ---
+
+  it('prefers CarIdxEstTime over lapDistPct when both cars have it', () => {
+    // est-time disagrees with lapDistPct on purpose; est-time must win.
+    const p = car(1, 0.0, { isPlayer: true, estTimeToCurrentLocationSec: 0, bestLapTimeSec: 100 });
+    const c = car(2, 0.9, { estTimeToCurrentLocationSec: 4 }); // lapDistPct would say behind
+    const { ahead } = computeRelative(p, [c]);
+    expect(ahead[0].gapSeconds).toBeCloseTo(4, 5); // 4 - 0 seconds ahead
+  });
+
+  it('wraps est-time at start/finish (nearest way around the loop)', () => {
+    const p = car(1, 0.0, { isPlayer: true, estTimeToCurrentLocationSec: 98, bestLapTimeSec: 100 });
+    const c = car(2, 0.0, { estTimeToCurrentLocationSec: 1 }); // 1s into its lap, player near the end
+    const { ahead } = computeRelative(p, [c]);
+    expect(ahead[0].gapSeconds).toBeCloseTo(3, 5); // (1 - 98) wrapped by 100 = +3, not -97
+  });
+
+  it('falls back to lapDistPct for a car missing est-time even when the player has it', () => {
+    const p = car(1, 0.0, { isPlayer: true, estTimeToCurrentLocationSec: 50, bestLapTimeSec: 100 });
+    const c = car(2, 0.1, { estTimeToCurrentLocationSec: null }); // no est -> use track fraction
+    const { ahead } = computeRelative(p, [c]);
+    expect(ahead[0].gapSeconds).toBeCloseTo(10, 5); // 0.1 * 100
+  });
 });

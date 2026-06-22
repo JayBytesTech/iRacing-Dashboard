@@ -216,7 +216,10 @@ function snapshotPayload() {
         lapDistPct: Number(c.lapDistPct.toFixed(4)),
         lastLapTimeSec: c.lapTime,
         bestLapTimeSec: c.best,
-        estTimeToCurrentLocationSec: Number((c.lapDistPct * c.lapTime).toFixed(2)),
+        // iRacing's CarIdxEstTime is on a single common track-time basis (so cars are comparable),
+        // NOT each car's personal lap time — use the player's lap as that reference so the relative
+        // gap wraps correctly at S/F instead of flipping sign for cars near the line.
+        estTimeToCurrentLocationSec: Number((c.lapDistPct * player.lapTimeSec).toFixed(2)),
         onPitRoad: c.pit,
       }),
     ),
