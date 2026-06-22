@@ -36,6 +36,9 @@ export default function LivePage() {
         <Link href="/log" style={{ marginLeft: 'auto', fontSize: 13, color: '#6fb1ff' }}>
           journal →
         </Link>
+        <Link href="/trends" style={{ fontSize: 13, color: '#6fb1ff' }}>
+          trends →
+        </Link>
         <Link href="/debug" style={{ fontSize: 13, color: '#6fb1ff' }}>
           debug →
         </Link>

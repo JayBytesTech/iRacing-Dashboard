@@ -14,6 +14,8 @@ export interface JournalSession {
   stdDevSec: number | null;
   fuelBurnPerLapLiters: number | null;
   stops: number | null;
+  pitStops: number | null;
+  incidents: number | null;
   source: string | null;
   title: string | null;
   notes: string | null;

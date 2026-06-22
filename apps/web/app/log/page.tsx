@@ -32,9 +32,14 @@ export default function LogPage() {
     <main style={{ maxWidth: 1000, margin: '0 auto', padding: 24, color: '#e6e6e6', fontFamily: 'system-ui, sans-serif' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>Driver&apos;s Journal</h1>
-        <Link href="/" style={{ color: '#6aa3ff', fontSize: 14 }}>
-          ← dashboard
-        </Link>
+        <div style={{ display: 'flex', gap: 14 }}>
+          <Link href="/trends" style={{ color: '#6aa3ff', fontSize: 14 }}>
+            trends →
+          </Link>
+          <Link href="/" style={{ color: '#6aa3ff', fontSize: 14 }}>
+            ← dashboard
+          </Link>
+        </div>
       </header>
 
       {error && (
@@ -90,6 +95,7 @@ function SessionCard({ session, active, onClick }: { session: JournalSession; ac
         {session.bestLapSec != null && <span>best {fmtLap(session.bestLapSec)}</span>}
         {session.stdDevSec != null && <span>σ {session.stdDevSec.toFixed(2)}s</span>}
         {session.stops != null && <span>{session.stops} stop{session.stops === 1 ? '' : 's'}</span>}
+        {session.incidents != null && <span style={{ color: session.incidents > 0 ? '#ff9d5c' : undefined }}>{session.incidents}x</span>}
       </div>
       {session.tags.length > 0 && (
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
@@ -143,6 +149,8 @@ function EntryEditor({ session, onSaved }: { session: JournalSession; onSaved: (
         {session.stdDevSec != null && <Metric label="σ" value={`${session.stdDevSec.toFixed(2)}s`} />}
         {session.fuelBurnPerLapLiters != null && <Metric label="Burn/lap" value={`${session.fuelBurnPerLapLiters.toFixed(2)} L`} />}
         {session.stops != null && <Metric label="Stops" value={String(session.stops)} />}
+        {session.pitStops != null && <Metric label="Pit stops" value={String(session.pitStops)} />}
+        {session.incidents != null && <Metric label="Incidents" value={`${session.incidents}x`} />}
       </div>
 
       <hr style={{ border: 'none', borderTop: '1px solid #232a38', margin: '16px 0' }} />

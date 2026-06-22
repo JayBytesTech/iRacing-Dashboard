@@ -23,6 +23,11 @@ if (args.Length > 0 && args[0] == "analyze")
     return await AnalyzeCommand.Run(config, ibtArg, save);
 }
 
+// Batch backfill: `dotnet run -- import <dir>` replays every .ibt under a folder and saves each to the
+// journal (quietly), so the trend views have history to chart.
+if (args.Length > 0 && args[0] == "import")
+    return await ImportCommand.Run(config, args.Length > 1 ? args[1] : null);
+
 // Offline track-map exporter: replays a file and writes a geographic centerline JSON to stdout.
 if (args.Length > 0 && args[0] == "maptrack")
     return await MapTrackCommand.Run(config, args.Length > 1 ? args[1] : null);

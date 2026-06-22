@@ -15,7 +15,7 @@ namespace IracingEngineer.Agent;
 /// </summary>
 public static class AnalyzeCommand
 {
-    public static async Task<int> Run(AgentConfig config, string? ibtPathOverride, bool save = false)
+    public static async Task<int> Run(AgentConfig config, string? ibtPathOverride, bool save = false, bool quiet = false)
     {
         var path = ibtPathOverride ?? config.Telemetry.IbtPath;
         if (string.IsNullOrWhiteSpace(path))
@@ -54,7 +54,7 @@ public static class AnalyzeCommand
             eventDetector.OnFrame(new EventInput(f.SessionTimeMs, f.Lap, f.OnPitRoad, f.IncidentCount));
         };
 
-        Console.WriteLine($"analyze: replaying {Path.GetFileName(path)} ({new FileInfo(path).Length / (1024 * 1024)} MB) at max speed…");
+        if (!quiet) Console.WriteLine($"analyze: replaying {Path.GetFileName(path)} ({new FileInfo(path).Length / (1024 * 1024)} MB) at max speed…");
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
         using var cts = new CancellationTokenSource();
@@ -75,16 +75,29 @@ public static class AnalyzeCommand
         sw.Stop();
         await source.DisposeAsync();
 
-        PrintReport(tracker, session, frameCount, sw.Elapsed);
-        PrintCoaching(traceRecorder, session);
-        PrintEvents(eventDetector);
+        if (!quiet)
+        {
+            PrintReport(tracker, session, frameCount, sw.Elapsed);
+            PrintCoaching(traceRecorder, session);
+            PrintEvents(eventDetector);
+        }
 
         if (save)
         {
             var record = BuildRecord(path, session, tracker, traceRecorder, eventDetector);
             var store = new JournalStore(config.Journal.DbPath);
             store.Upsert(record);
-            Console.WriteLine($"  saved to journal: {record.Id}  ({Path.GetFullPath(config.Journal.DbPath)})");
+            if (quiet)
+            {
+                // One compact line per file for the batch importer.
+                var name = $"{record.Track}{(record.TrackConfig is { } tc ? $" ({tc})" : "")}";
+                Console.WriteLine($"  ✓ {Path.GetFileName(path),-52}  {name} · {record.SessionType} · " +
+                                  $"{record.Laps} laps · best {record.BestLapSec?.ToString("F2") ?? "—"} · {record.Incidents ?? 0}x");
+            }
+            else
+            {
+                Console.WriteLine($"  saved to journal: {record.Id}  ({Path.GetFullPath(config.Journal.DbPath)})");
+            }
         }
         return 0;
     }
