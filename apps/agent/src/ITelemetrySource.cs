@@ -32,6 +32,8 @@ public record TelemetryFrame(
     double? Rpm,
     double? Throttle,
     double? Brake,
+    double? Lat,
+    double? Lon,
     double? FuelLevel,
     int? Lap,
     int? LapCompleted,

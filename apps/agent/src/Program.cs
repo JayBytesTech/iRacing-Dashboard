@@ -17,6 +17,10 @@ var config = AgentConfig.Load("agent.config.json");
 if (args.Length > 0 && args[0] == "analyze")
     return await AnalyzeCommand.Run(config, args.Length > 1 ? args[1] : null);
 
+// Offline track-map exporter: replays a file and writes a geographic centerline JSON to stdout.
+if (args.Length > 0 && args[0] == "maptrack")
+    return await MapTrackCommand.Run(config, args.Length > 1 ? args[1] : null);
+
 var jsonOptions = new JsonSerializerOptions
 {
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

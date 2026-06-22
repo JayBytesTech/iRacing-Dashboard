@@ -70,6 +70,7 @@ export default function LivePage() {
             <TrackMapWidget
               player={snapshot.player}
               cars={snapshot.cars}
+              trackName={snapshot.session.trackName}
               lossZones={snapshot.coaching?.lastLap?.lossZones}
             />
             <CoachingWidget coaching={snapshot.coaching} />
