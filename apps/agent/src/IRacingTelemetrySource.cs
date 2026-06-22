@@ -30,6 +30,11 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
     private readonly AgentConfig _config;
     private readonly ILogger _logger;
     private int? _lastSessionNum;
+    private bool _loggedFrame;
+
+    // iRacing reports these sentinels when a session has no lap/time limit (e.g. practice).
+    private const int UnlimitedLaps = 32767;
+    private const double UnlimitedTimeSec = 604800; // 7 days
 
     public event Action<TelemetryFrame>? FrameReceived;
     public event Action<SessionInfoData>? SessionInfoReceived;
@@ -43,8 +48,9 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
 
     public async Task RunAsync(CancellationToken ct)
     {
+        var speed = _config.Telemetry.IbtPlaybackSpeed > 0 ? _config.Telemetry.IbtPlaybackSpeed : int.MaxValue;
         var ibt = _config.Telemetry.Mode == "ibt" && !string.IsNullOrWhiteSpace(_config.Telemetry.IbtPath)
-            ? new IBTOptions(_config.Telemetry.IbtPath!, int.MaxValue) // replay as fast as possible
+            ? new IBTOptions(_config.Telemetry.IbtPath!, speed)
             : null;
 
         await using var client = ibt is null
@@ -62,12 +68,22 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
             OnRawSessionInfoUpdate = yaml =>
             {
                 var data = SessionInfoParser.Parse(yaml, _lastSessionNum);
+                _logger.LogInformation("[diag] SessionInfo yaml={len}B parsed={ok} track={track} drivers={n} playerIdx={idx} lapLimited={ll}",
+                    yaml?.Length, data is not null, data?.TrackDisplayName, data?.Drivers.Count, data?.PlayerCarIdx, data?.IsLapLimited);
                 if (data is not null) SessionInfoReceived?.Invoke(data);
                 return Task.CompletedTask;
             },
             OnTelemetryUpdate = t =>
             {
                 _lastSessionNum = t.SessionNum;
+                if (!_loggedFrame)
+                {
+                    _loggedFrame = true;
+                    var pct = t.CarIdxLapDistPct;
+                    var active = pct?.Count(x => x >= 0) ?? -1;
+                    _logger.LogInformation("[diag] first frame: CarIdxPosition.Len={pos} CarIdxLapDistPct.Len={pl} active(>=0)={act} lapsRemEx={lr} timeRem={tr}",
+                        t.CarIdxPosition?.Length, pct?.Length, active, t.SessionLapsRemainEx, t.SessionTimeRemain);
+                }
                 FrameReceived?.Invoke(MapFrame(t));
                 return Task.CompletedTask;
             },
@@ -94,8 +110,10 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
         LapCompleted: t.LapCompleted,
         LapDistPct: t.LapDistPct,
         OnPitRoad: t.OnPitRoad,
-        SessionLapsRemaining: t.SessionLapsRemainEx,
-        SessionTimeRemainingSec: t.SessionTimeRemain,
+        // Map iRacing's "unlimited" sentinels to null so practice/open sessions don't read as a
+        // 32767-lap race and wreck fuel-to-finish.
+        SessionLapsRemaining: t.SessionLapsRemainEx is { } lr and < UnlimitedLaps ? lr : null,
+        SessionTimeRemainingSec: t.SessionTimeRemain is { } tr and < UnlimitedTimeSec ? tr : null,
         SessionNum: t.SessionNum,
         CarIdxPosition: Nullable(t.CarIdxPosition),
         CarIdxClassPosition: Nullable(t.CarIdxClassPosition),

@@ -34,6 +34,12 @@ public record TelemetryConfig
 
     /// <summary>Path to the .ibt file when Mode == "ibt".</summary>
     public string? IbtPath { get; init; }
+
+    /// <summary>
+    /// Replay speed for .ibt mode. 1 = real time; 10 = 10x (good for watching the dashboard animate);
+    /// 0 or negative = as fast as possible (process the whole file in seconds, e.g. for analysis).
+    /// </summary>
+    public int IbtPlaybackSpeed { get; init; } = 10;
 }
 
 public record PrivacyConfig

@@ -5,6 +5,7 @@
 !.env.example
 **/appsettings.Local.json
 agent.config.local.json
+apps/agent/agent.config.json
 
 # ---- Telemetry & session captures (privacy: may contain real driver names / user IDs) ----
 # Sample fixtures that are intentionally committed live under data/sample-sessions/ and are
