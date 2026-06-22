@@ -48,6 +48,36 @@ TelemetryFrame? latest = null;
 SessionInfoData? latestSession = null;
 var lastFrameAt = DateTimeOffset.UtcNow;
 
+// Journal: shared by the HTTP API and the live session-end auto-capture below.
+var journal = new JournalStore(config.Journal.DbPath);
+var captureLock = new object();
+var runStart = DateTimeOffset.UtcNow;
+int? activeSessionNum = null;
+var capturedSessions = new HashSet<int>();
+
+// Write a journal record for the session we've been accumulating. Idempotent per SessionNum, so the
+// session-change, end-of-stream, and shutdown triggers can all fire without duplicating.
+void CaptureSession(string reason)
+{
+    if (!config.Journal.AutoCapture) return;
+    lock (captureLock)
+    {
+        if (activeSessionNum is not { } sn || fuelTracker.Laps.Count == 0) return;
+        if (!capturedSessions.Add(sn)) return;
+
+        var ibt = config.Telemetry.Mode == "ibt" && !string.IsNullOrWhiteSpace(config.Telemetry.IbtPath);
+        var id = ibt ? "ibt:" + Path.GetFileName(config.Telemetry.IbtPath!)
+                     : $"live:{runStart:yyyyMMdd-HHmmss}:s{sn}";
+        var capturedAt = ibt && File.Exists(config.Telemetry.IbtPath!)
+            ? new DateTimeOffset(File.GetLastWriteTimeUtc(config.Telemetry.IbtPath!), TimeSpan.Zero)
+            : DateTimeOffset.UtcNow;
+        var record = SessionRecordFactory.Build(id, ibt ? id : "live", capturedAt, latestSession, fuelTracker, traceRecorder);
+        journal.Upsert(record);
+        Console.WriteLine($"[journal] captured session {sn} ({reason}): {record.Laps} laps, " +
+                          $"best {record.BestLapSec?.ToString("F2") ?? "—"}s -> {record.Id}");
+    }
+}
+
 source.ConnectionChanged += c => iracingConnected = c;
 source.SessionInfoReceived += info =>
 {
@@ -58,6 +88,16 @@ source.FrameReceived += f =>
 {
     latest = f;
     lastFrameAt = DateTimeOffset.UtcNow;
+
+    // Session boundary: log the finished session, then accumulate the next one from scratch.
+    if (f.SessionNum is { } sn && sn != activeSessionNum)
+    {
+        if (activeSessionNum is not null) CaptureSession("session change");
+        activeSessionNum = sn;
+        fuelTracker = new FuelStrategyTracker();
+        traceRecorder = new LapTraceRecorder();
+    }
+
     fuelTracker.OnFrame(f, ResolveRaceRemaining(f, latestSession));
     traceRecorder.OnFrame(f);
 };
@@ -79,8 +119,6 @@ webBuilder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().Allo
 var app = webBuilder.Build();
 app.UseWebSockets();
 app.UseCors();
-
-var journal = new JournalStore(config.Journal.DbPath);
 
 // --- HTTP status / capabilities (plain JSON) ---
 app.MapGet("/status", () => Results.Json(new
@@ -114,7 +152,8 @@ app.Map("/live", async context =>
 
 // --- Telemetry source + broadcast loop ---
 var cts = new CancellationTokenSource();
-_ = source.RunAsync(cts.Token);
+// When the stream ends (an .ibt reaches EOF, or live disconnects), log the in-progress session.
+_ = source.RunAsync(cts.Token).ContinueWith(_ => CaptureSession("end of stream"), TaskScheduler.Default);
 
 var snapshotInterval = TimeSpan.FromMilliseconds(1000.0 / Math.Max(1, config.Telemetry.UiSnapshotHz));
 _ = Task.Run(async () =>
@@ -131,6 +170,10 @@ _ = Task.Run(async () =>
     }
 });
 
-app.Lifetime.ApplicationStopping.Register(() => cts.Cancel());
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    CaptureSession("shutdown"); // flush the current session on graceful stop (SIGINT/SIGTERM)
+    cts.Cancel();
+});
 app.Run($"http://{config.Server.Host}:{config.Server.Port}");
 return 0;

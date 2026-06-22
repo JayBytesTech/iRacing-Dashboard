@@ -250,40 +250,15 @@ public static class AnalyzeCommand
         Console.WriteLine();
     }
 
-    /// <summary>Assemble a journal SessionRecord from the analyzed run (auto fields only; notes stay blank).</summary>
+    /// <summary>Assemble a journal SessionRecord from the analyzed .ibt (auto fields only; notes stay blank).</summary>
     private static SessionRecord BuildRecord(string path, SessionInfoData? session, FuelStrategyTracker tracker, LapTraceRecorder traces)
     {
-        var clean = FuelModel.CleanLaps(tracker.Laps);
-        var consistency = CoachingModel.Consistency(traces.Traces);
-        var fuel = tracker.Current;
-
-        int? stops = null;
-        if (fuel is { FuelBurnPerLapLiters: { } burn, RaceLapsToGo: { } toGo, EstimatedLapsRemaining: { } aboard }
-            && session?.UsableFuelLiters is { } tank)
-        {
-            stops = StintPlanner.Plan(burn, aboard * burn, tank, toGo)?.StopsRemaining;
-        }
-
-        string? car = session?.PlayerCarIdx is { } idx && session.DriversByCarIdx.TryGetValue(idx, out var d)
-            ? d.CarScreenName
-            : null;
-
-        return new SessionRecord
-        {
-            Id = "ibt:" + Path.GetFileName(path),
-            CapturedAt = new DateTimeOffset(File.GetLastWriteTimeUtc(path), TimeSpan.Zero),
-            Track = session?.TrackDisplayName,
-            TrackConfig = session?.TrackConfigName,
-            Car = car,
-            SessionType = session?.SessionType,
-            Laps = tracker.Laps.Count,
-            CleanLaps = clean.Count,
-            BestLapSec = consistency?.BestLapSec,
-            StdDevSec = consistency?.StdDevSec,
-            FuelBurnPerLapLiters = fuel.FuelBurnPerLapLiters,
-            Stops = stops,
-            Source = "ibt:" + Path.GetFileName(path),
-        };
+        var id = "ibt:" + Path.GetFileName(path);
+        return SessionRecordFactory.Build(
+            id,
+            source: id,
+            capturedAt: new DateTimeOffset(File.GetLastWriteTimeUtc(path), TimeSpan.Zero),
+            session, tracker, traces);
     }
 
     private static double Median(IReadOnlyList<double> sorted)

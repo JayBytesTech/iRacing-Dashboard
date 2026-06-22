@@ -53,4 +53,7 @@ public record JournalConfig
 {
     /// <summary>SQLite file for the driver's journal, relative to the agent's working directory.</summary>
     public string DbPath { get; init; } = "data/journal.db";
+
+    /// <summary>When true, the live agent auto-logs a record at each session's end (change/EOF/shutdown).</summary>
+    public bool AutoCapture { get; init; } = true;
 }
