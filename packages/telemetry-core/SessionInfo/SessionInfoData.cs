@@ -15,6 +15,15 @@ public sealed record SessionInfoData
     /// <summary>DriverInfo.DriverCarIdx — which car in the field is the local player/team car.</summary>
     public int? PlayerCarIdx { get; init; }
 
+    /// <summary>DriverInfo.DriverCarFuelMaxLtr — physical tank size of the player's car, litres.</summary>
+    public double? FuelTankMaxLiters { get; init; }
+    /// <summary>DriverInfo.DriverCarMaxFuelPct — max fill fraction (e.g. 0.98 under a fuel-fill rule).</summary>
+    public double? MaxFuelPct { get; init; }
+
+    /// <summary>Usable tank = capacity × max-fill rule. Falls back to raw capacity if the pct is absent.</summary>
+    public double? UsableFuelLiters =>
+        FuelTankMaxLiters is { } cap ? cap * (MaxFuelPct ?? 1.0) : null;
+
     public int? CurrentSessionNum { get; init; }
     public string? SessionType { get; init; }
 

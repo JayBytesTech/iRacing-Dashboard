@@ -46,6 +46,8 @@ public static class SessionInfoParser
             TrackConfigName = NullIfBlankOrNone(raw.WeekendInfo?.TrackConfigName),
             TrackLengthKm = ParseKm(raw.WeekendInfo?.TrackLength),
             PlayerCarIdx = raw.DriverInfo?.DriverCarIdx,
+            FuelTankMaxLiters = raw.DriverInfo?.DriverCarFuelMaxLtr,
+            MaxFuelPct = raw.DriverInfo?.DriverCarMaxFuelPct,
             CurrentSessionNum = session?.SessionNum,
             SessionType = session?.SessionType,
             IsLapLimited = laps is > 0,
@@ -125,6 +127,8 @@ public static class SessionInfoParser
     private sealed class RawDriverInfo
     {
         public int DriverCarIdx { get; set; }
+        public double? DriverCarFuelMaxLtr { get; set; }
+        public double? DriverCarMaxFuelPct { get; set; }
         public List<RawDriver>? Drivers { get; set; }
     }
 

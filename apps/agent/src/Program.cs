@@ -12,6 +12,11 @@ using IracingEngineer.TelemetryCore.SessionInfo;
 
 var config = AgentConfig.Load("agent.config.json");
 
+// Offline replay-and-report mode: `dotnet run -- analyze [path.ibt]`. Replays a file to completion
+// through the real fuel tracker and prints a validation report, then exits (no web server).
+if (args.Length > 0 && args[0] == "analyze")
+    return await AnalyzeCommand.Run(config, args.Length > 1 ? args[1] : null);
+
 var jsonOptions = new JsonSerializerOptions
 {
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -100,3 +105,4 @@ _ = Task.Run(async () =>
 
 app.Lifetime.ApplicationStopping.Register(() => cts.Cancel());
 app.Run($"http://{config.Server.Host}:{config.Server.Port}");
+return 0;

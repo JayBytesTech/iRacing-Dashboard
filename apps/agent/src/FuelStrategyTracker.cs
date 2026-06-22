@@ -23,6 +23,9 @@ public sealed class FuelStrategyTracker
 
     public FuelEstimate Current { get; private set; } = FuelEstimate.Unknown;
 
+    /// <summary>Every completed lap recorded so far. Exposed for offline analysis / diagnostics.</summary>
+    public IReadOnlyList<LapRecord> Laps => _laps;
+
     /// <summary>Feed one telemetry frame. <paramref name="remaining"/> comes from session metadata.</summary>
     public void OnFrame(TelemetryFrame f, RaceRemaining remaining)
     {
