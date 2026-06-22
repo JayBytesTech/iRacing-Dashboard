@@ -50,4 +50,5 @@ public sealed record SessionDriver(
     string? TeamName,
     string? ClassName,
     int? ClassId,
-    bool IsPaceCar);
+    bool IsPaceCar,
+    string? CarScreenName = null);

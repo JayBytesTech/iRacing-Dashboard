@@ -8,6 +8,7 @@ public record AgentConfig
     public ServerConfig Server { get; init; } = new();
     public TelemetryConfig Telemetry { get; init; } = new();
     public PrivacyConfig Privacy { get; init; } = new();
+    public JournalConfig Journal { get; init; } = new();
 
     public static AgentConfig Load(string path)
     {
@@ -46,4 +47,10 @@ public record PrivacyConfig
 {
     public bool MaskDriverNames { get; init; } = false;
     public bool StoreRawSessionInfo { get; init; } = false;
+}
+
+public record JournalConfig
+{
+    /// <summary>SQLite file for the driver's journal, relative to the agent's working directory.</summary>
+    public string DbPath { get; init; } = "data/journal.db";
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using IracingEngineer.Agent;
 using IracingEngineer.Strategy.Fuel;
 using IracingEngineer.TelemetryCore.SessionInfo;
+using IracingEngineer.Journal;
 
 // Entry point for the local telemetry agent.
 //   1. load config   2. start HTTP + WebSocket host   3. start the telemetry source
@@ -15,7 +16,12 @@ var config = AgentConfig.Load("agent.config.json");
 // Offline replay-and-report mode: `dotnet run -- analyze [path.ibt]`. Replays a file to completion
 // through the real fuel tracker and prints a validation report, then exits (no web server).
 if (args.Length > 0 && args[0] == "analyze")
-    return await AnalyzeCommand.Run(config, args.Length > 1 ? args[1] : null);
+{
+    var rest = args.Skip(1).ToArray();
+    var save = rest.Contains("--save");
+    var ibtArg = rest.FirstOrDefault(a => !a.StartsWith("--"));
+    return await AnalyzeCommand.Run(config, ibtArg, save);
+}
 
 // Offline track-map exporter: replays a file and writes a geographic centerline JSON to stdout.
 if (args.Length > 0 && args[0] == "maptrack")
@@ -66,8 +72,15 @@ static RaceRemaining ResolveRaceRemaining(TelemetryFrame f, SessionInfoData? ses
     return new RaceRemaining();
 }
 
-var app = WebApplication.CreateBuilder(args).Build();
+var webBuilder = WebApplication.CreateBuilder(args);
+// The web dashboard is served from a different origin in dev (localhost:3000); allow it to read/write
+// the journal API. This is a local-only agent, so a permissive policy is fine.
+webBuilder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+var app = webBuilder.Build();
 app.UseWebSockets();
+app.UseCors();
+
+var journal = new JournalStore(config.Journal.DbPath);
 
 // --- HTTP status / capabilities (plain JSON) ---
 app.MapGet("/status", () => Results.Json(new
@@ -78,6 +91,13 @@ app.MapGet("/status", () => Results.Json(new
     recording = config.Telemetry.RecordSession,
     mode = config.Telemetry.Mode,
 }, jsonOptions));
+
+// --- Driver's journal (SQLite-backed) ---
+app.MapGet("/journal", () => Results.Json(journal.List(), jsonOptions));
+app.MapGet("/journal/{id}", (string id) =>
+    journal.Get(id) is { } r ? Results.Json(r, jsonOptions) : Results.NotFound());
+app.MapPost("/journal/{id}", (string id, JournalEdit edit) =>
+    journal.SaveEdit(id, edit) is { } r ? Results.Json(r, jsonOptions) : Results.NotFound());
 
 // --- WebSocket live stream ---
 app.Map("/live", async context =>

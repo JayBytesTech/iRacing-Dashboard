@@ -14,6 +14,9 @@ apps/agent/agent.config.json
 data/recordings/
 data/sessions/
 !data/sample-sessions/**
+# Driver's journal DB (personal notes + real driver names) — local only.
+**/data/journal.db
+**/data/journal.db-*
 
 # ---- .NET (agent) ----
 bin/

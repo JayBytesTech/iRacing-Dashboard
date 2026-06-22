@@ -75,7 +75,8 @@ public static class SessionInfoParser
         TeamName: NullIfBlank(d.TeamName),
         ClassName: NullIfBlank(d.CarClassShortName),
         ClassId: d.CarClassID == 0 ? null : d.CarClassID,
-        IsPaceCar: d.CarIsPaceCar == 1);
+        IsPaceCar: d.CarIsPaceCar == 1,
+        CarScreenName: NullIfBlank(d.CarScreenName));
 
     // ---- value parsing -----------------------------------------------------------------------
 
@@ -139,6 +140,7 @@ public static class SessionInfoParser
         public string? TeamName { get; set; }
         public string? CarNumber { get; set; }
         public string? CarClassShortName { get; set; }
+        public string? CarScreenName { get; set; }
         public int CarClassID { get; set; }
         public int CarIsPaceCar { get; set; }
     }

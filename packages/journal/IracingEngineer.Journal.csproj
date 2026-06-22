@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>IracingEngineer.Journal</RootNamespace>
+    <AssemblyName>IracingEngineer.Journal</AssemblyName>
+    <!-- Pure driver's-journal model: a SessionRecord (auto-captured stats + the driver's own notes)
+         plus the pure merge/normalize rules. No storage, no iRacing deps — the agent owns persistence
+         (SQLite) and assembles records from the strategy/coaching outputs. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests/**/*.cs" />
+  </ItemGroup>
+
+</Project>

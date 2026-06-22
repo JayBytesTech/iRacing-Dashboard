@@ -18,6 +18,8 @@
          The target framework stays net8.0; only the build toolchain needs to be 10.x. -->
     <PackageReference Include="SVappsLAB.iRacingTelemetrySDK" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+    <!-- File-based store for the driver's journal (data/journal.db). -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +29,8 @@
     <ProjectReference Include="../../packages/telemetry-core/IracingEngineer.TelemetryCore.csproj" />
     <!-- Pure driving-coach analysis (lap traces, time-delta, consistency), unit-tested separately. -->
     <ProjectReference Include="../../packages/coaching/IracingEngineer.Coaching.csproj" />
+    <!-- Pure driver's-journal model (SessionRecord + edit/merge rules), unit-tested separately. -->
+    <ProjectReference Include="../../packages/journal/IracingEngineer.Journal.csproj" />
   </ItemGroup>
 
 </Project>

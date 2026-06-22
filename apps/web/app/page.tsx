@@ -32,7 +32,10 @@ export default function LivePage() {
         <span style={{ width: 14, height: 14, borderRadius: '50%', background: STATUS_COLOR[status] }} />
         <strong style={{ textTransform: 'uppercase', letterSpacing: 1 }}>{status}</strong>
         <span style={{ opacity: 0.5, fontSize: 13 }}>{AGENT_URL}</span>
-        <Link href="/debug" style={{ marginLeft: 'auto', fontSize: 13, color: '#6fb1ff' }}>
+        <Link href="/log" style={{ marginLeft: 'auto', fontSize: 13, color: '#6fb1ff' }}>
+          journal →
+        </Link>
+        <Link href="/debug" style={{ fontSize: 13, color: '#6fb1ff' }}>
           debug →
         </Link>
       </header>
