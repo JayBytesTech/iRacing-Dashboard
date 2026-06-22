@@ -1,3 +1,4 @@
+using IracingEngineer.Coaching;
 using IracingEngineer.Strategy.Fuel;
 using IracingEngineer.TelemetryCore.SessionInfo;
 
@@ -33,6 +34,7 @@ public static class AnalyzeCommand
         };
 
         var tracker = new FuelStrategyTracker();
+        var traceRecorder = new LapTraceRecorder();
         SessionInfoData? session = null;
         long frameCount = 0;
         var lastFrameAt = DateTimeOffset.UtcNow;
@@ -45,6 +47,7 @@ public static class AnalyzeCommand
             frameCount++;
             lastFrameAt = DateTimeOffset.UtcNow;
             tracker.OnFrame(f, ResolveRaceRemaining(f, session));
+            traceRecorder.OnFrame(f);
         };
 
         Console.WriteLine($"analyze: replaying {Path.GetFileName(path)} ({new FileInfo(path).Length / (1024 * 1024)} MB) at max speed…");
@@ -69,6 +72,7 @@ public static class AnalyzeCommand
         await source.DisposeAsync();
 
         PrintReport(tracker, session, frameCount, sw.Elapsed);
+        PrintCoaching(traceRecorder, session);
         return 0;
     }
 
@@ -188,6 +192,51 @@ public static class AnalyzeCommand
         else
         {
             Console.WriteLine("  (need usable tank + burn + laps-to-go to plan)");
+        }
+        Console.WriteLine();
+    }
+
+    private static void PrintCoaching(LapTraceRecorder recorder, SessionInfoData? session)
+    {
+        void Rule() => Console.WriteLine(new string('─', 64));
+        var traces = recorder.Traces;
+
+        Console.WriteLine();
+        Rule();
+        Console.WriteLine("  DRIVING COACH (player traces)");
+        Rule();
+
+        var consistency = CoachingModel.Consistency(traces);
+        var reference = CoachingModel.ReferenceLap(traces);
+        if (consistency is null || reference is null)
+        {
+            Console.WriteLine("  (no representative laps to coach on)");
+            Console.WriteLine();
+            return;
+        }
+
+        Console.WriteLine($"  Representative laps : {consistency.LapCount}");
+        Console.WriteLine($"  Best (reference)    : lap {reference.Lap} @ {consistency.BestLapSec:F2}s");
+        Console.WriteLine($"  Consistency         : mean {consistency.MeanLapSec:F2}s  σ {consistency.StdDevSec:F2}s  spread {consistency.SpreadSec:F2}s");
+
+        // Coach the worst representative lap against the reference: where did it lose the most time?
+        var trackMeters = (session?.TrackLengthKm ?? 0) * 1000.0;
+        var worst = traces.Where(CoachingModel.IsRepresentative).OrderByDescending(l => l.LapTimeSec).First();
+        if (worst.Lap != reference.Lap && trackMeters > 0)
+        {
+            var delta = CoachingModel.CompareToReference(worst, reference, trackMeters);
+            Console.WriteLine();
+            Console.WriteLine($"  Slowest clean lap {worst.Lap} vs reference {reference.Lap}: {delta.FinalDeltaSec:+0.00;-0.00}s");
+            if (delta.TopLossZones.Count > 0)
+            {
+                Console.WriteLine("  Biggest time-loss zones (by track position):");
+                foreach (var z in delta.TopLossZones)
+                    Console.WriteLine($"    {z.StartPct * 100,5:F1}%–{z.EndPct * 100,-5:F1}%  lost {z.SecondsLost:F2}s");
+            }
+        }
+        else if (trackMeters <= 0)
+        {
+            Console.WriteLine("  (no track length in SessionInfo — can't locate time-loss zones)");
         }
         Console.WriteLine();
     }

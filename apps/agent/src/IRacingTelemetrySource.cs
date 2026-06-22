@@ -20,6 +20,7 @@ namespace IracingEngineer.Agent;
     TelemetryVar.IsOnTrack, TelemetryVar.IsReplayPlaying, TelemetryVar.SessionNum,
     TelemetryVar.SessionTime, TelemetryVar.SessionTimeRemain, TelemetryVar.SessionLapsRemainEx,
     TelemetryVar.Speed, TelemetryVar.Gear, TelemetryVar.RPM, TelemetryVar.FuelLevel,
+    TelemetryVar.Throttle, TelemetryVar.Brake,
     TelemetryVar.Lap, TelemetryVar.LapCompleted, TelemetryVar.LapDistPct, TelemetryVar.OnPitRoad,
     TelemetryVar.CarIdxPosition, TelemetryVar.CarIdxClassPosition, TelemetryVar.CarIdxLap,
     TelemetryVar.CarIdxLapCompleted, TelemetryVar.CarIdxLapDistPct, TelemetryVar.CarIdxOnPitRoad,
@@ -105,6 +106,8 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
         Speed: t.Speed,             // m/s; SnapshotBuilder converts to kph
         Gear: t.Gear,
         Rpm: t.RPM,
+        Throttle: t.Throttle,       // 0..1
+        Brake: t.Brake,             // 0..1
         FuelLevel: t.FuelLevel,     // litres
         Lap: t.Lap,
         LapCompleted: t.LapCompleted,

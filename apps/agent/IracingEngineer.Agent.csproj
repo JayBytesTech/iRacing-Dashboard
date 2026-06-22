@@ -25,6 +25,8 @@
     <ProjectReference Include="../../packages/strategy-engine/IracingEngineer.Strategy.csproj" />
     <!-- Pure iRacing data normalization (SessionInfo YAML parsing), unit-tested separately. -->
     <ProjectReference Include="../../packages/telemetry-core/IracingEngineer.TelemetryCore.csproj" />
+    <!-- Pure driving-coach analysis (lap traces, time-delta, consistency), unit-tested separately. -->
+    <ProjectReference Include="../../packages/coaching/IracingEngineer.Coaching.csproj" />
   </ItemGroup>
 
 </Project>

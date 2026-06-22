@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>IracingEngineer.Coaching</RootNamespace>
+    <AssemblyName>IracingEngineer.Coaching</AssemblyName>
+    <!-- Pure, deterministic driving-coach analysis. No iRacing dependency, no I/O — fully
+         unit-testable on Linux. The agent feeds it per-lap traces resampled by lap distance. -->
+  </PropertyGroup>
+
+  <!-- The test project lives in tests/ under this dir; keep its files out of the library build. -->
+  <ItemGroup>
+    <Compile Remove="tests/**/*.cs" />
+  </ItemGroup>
+
+</Project>
