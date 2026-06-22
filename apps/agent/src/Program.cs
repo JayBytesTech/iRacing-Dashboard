@@ -42,7 +42,20 @@ var fuelTracker = new FuelStrategyTracker();
 var traceRecorder = new LapTraceRecorder();
 
 using var telemetryLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
-ITelemetrySource source = new IRacingTelemetrySource(config, telemetryLoggerFactory.CreateLogger("iracing"));
+// Source: replay our own multi-car recording, else the iRacing SDK (live shared memory or .ibt).
+ITelemetrySource source = config.Telemetry.Mode == "recording" && !string.IsNullOrWhiteSpace(config.Telemetry.RecordingPath)
+    ? new RecordingTelemetrySource(
+        config.Telemetry.RecordingPath!,
+        config.Telemetry.IbtPlaybackSpeed > 0 ? config.Telemetry.IbtPlaybackSpeed : int.MaxValue,
+        jsonOptions)
+    : new IRacingTelemetrySource(config, telemetryLoggerFactory.CreateLogger("iracing"));
+
+// Optionally record the live/ibt stream (the whole field) to our own cross-platform format.
+SessionRecorder? recorder = config.Telemetry.RecordSession && config.Telemetry.Mode != "recording"
+    ? new SessionRecorder("data/recordings", config.Telemetry.RecordHz, jsonOptions)
+    : null;
+if (recorder is not null) Console.WriteLine($"[record] writing session to {recorder.Path}");
+
 var iracingConnected = false;
 TelemetryFrame? latest = null;
 SessionInfoData? latestSession = null;
@@ -83,6 +96,7 @@ source.SessionInfoReceived += info =>
 {
     latestSession = info;
     builder.UpdateSessionInfo(info);
+    recorder?.OnSessionInfo(info);
 };
 source.FrameReceived += f =>
 {
@@ -100,6 +114,7 @@ source.FrameReceived += f =>
 
     fuelTracker.OnFrame(f, ResolveRaceRemaining(f, latestSession));
     traceRecorder.OnFrame(f);
+    recorder?.OnFrame(f);
 };
 
 // Remaining laps/time count down via telemetry; SessionInfo tells us which one bounds the race.
@@ -173,6 +188,7 @@ _ = Task.Run(async () =>
 app.Lifetime.ApplicationStopping.Register(() =>
 {
     CaptureSession("shutdown"); // flush the current session on graceful stop (SIGINT/SIGTERM)
+    recorder?.Dispose();        // close the recording file
     cts.Cancel();
 });
 app.Run($"http://{config.Server.Host}:{config.Server.Port}");

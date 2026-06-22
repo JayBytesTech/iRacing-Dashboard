@@ -13,6 +13,9 @@ apps/agent/agent.config.json
 *.ibt
 data/recordings/
 data/sessions/
+# Our own multi-car session recordings (.ndjson) — contain the field's real driver names.
+**/data/recordings/
+*.ndjson
 !data/sample-sessions/**
 # Driver's journal DB (personal notes + real driver names) — local only.
 **/data/journal.db

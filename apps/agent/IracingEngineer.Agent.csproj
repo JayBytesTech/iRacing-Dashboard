@@ -22,6 +22,11 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
   </ItemGroup>
 
+  <!-- The agent's own test project lives in tests/; keep its files out of the exe build. -->
+  <ItemGroup>
+    <Compile Remove="tests/**/*.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Pure race-strategy math, shared and unit-tested independently of iRacing. -->
     <ProjectReference Include="../../packages/strategy-engine/IracingEngineer.Strategy.csproj" />

@@ -28,13 +28,20 @@ public record ServerConfig
 public record TelemetryConfig
 {
     public int UiSnapshotHz { get; init; } = 5;
-    public bool RecordSession { get; init; } = false;
 
-    /// <summary>"live" (Windows shared memory) or "ibt" (replay a recorded file, cross-platform).</summary>
+    /// <summary>When true (live/ibt mode), record the multi-car frame stream to data/recordings/.</summary>
+    public bool RecordSession { get; init; } = false;
+    /// <summary>Frames per second to record (downsampled by session time). Positions don't need 60 Hz.</summary>
+    public int RecordHz { get; init; } = 10;
+
+    /// <summary>"live" (Windows shared memory), "ibt" (replay an .ibt), or "recording" (replay our own capture).</summary>
     public string Mode { get; init; } = "ibt";
 
     /// <summary>Path to the .ibt file when Mode == "ibt".</summary>
     public string? IbtPath { get; init; }
+
+    /// <summary>Path to a recording (.ndjson) when Mode == "recording".</summary>
+    public string? RecordingPath { get; init; }
 
     /// <summary>
     /// Replay speed for .ibt mode. 1 = real time; 10 = 10x (good for watching the dashboard animate);
