@@ -61,7 +61,17 @@ public sealed class SnapshotBuilder
             }
         }
 
-        var strategy = fuel is null ? null : new { fuel };
+        // Tank-aware stint plan: needs the car's usable tank (from SessionInfo) plus a burn rate and
+        // race-laps-to-go (from the fuel estimate). Only meaningful for races longer than one tank.
+        IracingEngineer.Strategy.Fuel.StintPlan? stintPlan = null;
+        if (fuel is { FuelBurnPerLapLiters: { } burn, RaceLapsToGo: { } lapsToGo }
+            && _session?.UsableFuelLiters is { } usableTank
+            && f.FuelLevel is { } fuelNow)
+        {
+            stintPlan = IracingEngineer.Strategy.Fuel.StintPlanner.Plan(burn, fuelNow, usableTank, lapsToGo);
+        }
+
+        var strategy = fuel is null && stintPlan is null ? null : new { fuel, stintPlan };
         return new LiveSnapshot(connection, session, player, cars, strategy, Events: Array.Empty<object>());
     }
 

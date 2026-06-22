@@ -18,6 +18,22 @@ export interface FuelEstimate {
   status: FuelStatus;
 }
 
+/** Tank-aware plan for a race that may span several tanks (StintPlanner). */
+export interface StintPlan {
+  /** Laps a brimmed tank covers (minus reserve) — the length of a flat-out green stint. */
+  maxLapsPerStint: number;
+  /** Minimum further fuel stops needed to reach the finish. */
+  stopsRemaining: number;
+  /** True when the finish is reachable on the fuel currently aboard. */
+  canFinishOnCurrentFuel: boolean;
+  /** Total litres still to be taken on across all remaining stops (+reserve). */
+  fuelToAddTotalLiters: number;
+  /** Total litres the rest of the race consumes (+reserve), regardless of stops. */
+  totalFuelToFinishLiters: number;
+  /** Laps the current fuel load alone will cover. */
+  lapsOnCurrentFuel: number;
+}
+
 export interface SessionState {
   sessionId: string | null;
   trackName: string | null;
@@ -61,7 +77,7 @@ export interface SnapshotPayload {
   session: SessionState;
   player: Car;
   cars: Car[];
-  strategy: { fuel?: FuelEstimate } | null;
+  strategy: { fuel?: FuelEstimate; stintPlan?: StintPlan | null } | null;
   events: unknown[];
 }
 

@@ -28,8 +28,9 @@ const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'; // RFC 6455 magic string
 // A simple endurance-ish loop: fuel burns down, the car laps the track, a couple of AI cars move.
 const startedAt = Date.now();
 let sequence = 0;
-const TOTAL_LAPS = 30;
+const TOTAL_LAPS = 120;        // enduro-length so the tank-aware stint plan has stops to show
 const BURN_PER_LAP = 2.65;
+const USABLE_TANK = 60;        // usable litres (stand-in for SessionInfo DriverCarFuelMaxLtr × maxFill)
 // Start a few laps into a stint so the fuel estimate is already populated (a fresh start would sit in
 // the "gathering clean laps" state for ~2 laps). Fuel reflects laps already burned.
 const START_LAP = 6;
@@ -114,6 +115,25 @@ function fuelEstimate() {
   };
 }
 
+// Stand-in for the C# StintPlanner: tank-aware whole-race plan (stops + stint length). Same math as
+// packages/strategy-engine/Fuel/StintPlanner.cs so the dashboard has an enduro plan to render.
+function stintPlan(fe) {
+  if (!fe || fe.fuelBurnPerLapLiters == null || fe.raceLapsToGo == null) return null;
+  const burn = fe.fuelBurnPerLapLiters;
+  if (burn <= 0 || USABLE_TANK <= 0 || fe.raceLapsToGo < 0) return null;
+  const totalToFinish = fe.raceLapsToGo * burn;
+  const deficit = totalToFinish - player.fuel;
+  const stops = deficit <= 0 ? 0 : Math.ceil(deficit / USABLE_TANK);
+  return {
+    maxLapsPerStint: Math.floor(USABLE_TANK / burn),
+    stopsRemaining: stops,
+    canFinishOnCurrentFuel: stops === 0,
+    fuelToAddTotalLiters: Number(Math.max(0, deficit).toFixed(2)),
+    totalFuelToFinishLiters: Number(totalToFinish.toFixed(2)),
+    lapsOnCurrentFuel: Number((player.fuel / burn).toFixed(2)),
+  };
+}
+
 function snapshotPayload() {
   const speedKph = 150 + 60 * Math.sin(player.lapDistPct * Math.PI * 4); // fake corners/straights
   const rpm = 5000 + 3000 * Math.abs(Math.sin(player.lapDistPct * Math.PI * 4));
@@ -166,7 +186,7 @@ function snapshotPayload() {
         onPitRoad: c.pit,
       }),
     ),
-    strategy: { fuel: fuelEstimate() },
+    strategy: (() => { const fuel = fuelEstimate(); return { fuel, stintPlan: stintPlan(fuel) }; })(),
     events: [],
   };
 }

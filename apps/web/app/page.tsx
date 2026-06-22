@@ -41,7 +41,11 @@ export default function LivePage() {
           <SessionHeader session={snapshot.session} />
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-            <FuelWidget player={snapshot.player} fuel={snapshot.strategy?.fuel} />
+            <FuelWidget
+              player={snapshot.player}
+              fuel={snapshot.strategy?.fuel}
+              stintPlan={snapshot.strategy?.stintPlan}
+            />
 
             {/* Glanceable car card */}
             <section
