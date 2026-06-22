@@ -168,6 +168,23 @@ function coaching() {
   };
 }
 
+// A small synthetic event timeline so the dashboard's EventTimelineWidget has data to render. Newest
+// first (the agent sends them that way). Only surfaces events on laps the player has already passed.
+function mockEvents() {
+  const refLap = player.lapTimeSec;
+  const scripted = [
+    { lap: 2, kind: 'Incident', detail: '+1x' },
+    { lap: 3, kind: 'PitEntry', detail: null },
+    { lap: 3, kind: 'PitExit', detail: null },
+    { lap: 4, kind: 'Incident', detail: '+2x' },
+    { lap: 5, kind: 'Incident', detail: '+1x' },
+  ];
+  return scripted
+    .filter((e) => e.lap < player.lap)
+    .map((e) => ({ sessionTimeMs: Math.round(e.lap * refLap * 1000), lap: e.lap, kind: e.kind, detail: e.detail }))
+    .reverse(); // newest first
+}
+
 function snapshotPayload() {
   const speedKph = 150 + 60 * Math.sin(player.lapDistPct * Math.PI * 4); // fake corners/straights
   const rpm = 5000 + 3000 * Math.abs(Math.sin(player.lapDistPct * Math.PI * 4));
@@ -225,7 +242,7 @@ function snapshotPayload() {
     ),
     strategy: (() => { const fuel = fuelEstimate(); return { fuel, stintPlan: stintPlan(fuel) }; })(),
     coaching: coaching(),
-    events: [],
+    events: mockEvents(),
   };
 }
 

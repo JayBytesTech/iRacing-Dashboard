@@ -1,3 +1,4 @@
+using IracingEngineer.TelemetryCore.Events;
 using IracingEngineer.TelemetryCore.SessionInfo;
 
 namespace IracingEngineer.Agent;
@@ -22,7 +23,8 @@ public sealed class SnapshotBuilder
         bool iracingConnected,
         long dataAgeMs,
         IracingEngineer.Strategy.Fuel.FuelEstimate? fuel = null,
-        CoachingSnapshot? coaching = null)
+        CoachingSnapshot? coaching = null,
+        IReadOnlyList<RaceEvent>? events = null)
     {
         var connection = new ConnectionState(iracingConnected, f.IsOnTrack, f.IsReplayPlaying, dataAgeMs);
 
@@ -73,7 +75,8 @@ public sealed class SnapshotBuilder
         }
 
         var strategy = fuel is null && stintPlan is null ? null : new { fuel, stintPlan };
-        return new LiveSnapshot(connection, session, player, cars, strategy, Events: Array.Empty<object>(), Coaching: coaching);
+        var eventList = events is { Count: > 0 } ? (IReadOnlyList<object>)events : Array.Empty<object>();
+        return new LiveSnapshot(connection, session, player, cars, strategy, Events: eventList, Coaching: coaching);
     }
 
     private CarModel BuildCar(int carIdx, TelemetryFrame f, bool isPlayer)

@@ -22,6 +22,7 @@ namespace IracingEngineer.Agent;
     TelemetryVar.Speed, TelemetryVar.Gear, TelemetryVar.RPM, TelemetryVar.FuelLevel,
     TelemetryVar.Throttle, TelemetryVar.Brake, TelemetryVar.Lat, TelemetryVar.Lon,
     TelemetryVar.Lap, TelemetryVar.LapCompleted, TelemetryVar.LapDistPct, TelemetryVar.OnPitRoad,
+    TelemetryVar.PlayerCarMyIncidentCount,
     TelemetryVar.CarIdxPosition, TelemetryVar.CarIdxClassPosition, TelemetryVar.CarIdxLap,
     TelemetryVar.CarIdxLapCompleted, TelemetryVar.CarIdxLapDistPct, TelemetryVar.CarIdxOnPitRoad,
     TelemetryVar.CarIdxEstTime,
@@ -115,6 +116,7 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
         LapCompleted: t.LapCompleted,
         LapDistPct: t.LapDistPct,
         OnPitRoad: t.OnPitRoad,
+        IncidentCount: t.PlayerCarMyIncidentCount,
         // Map iRacing's "unlimited" sentinels to null so practice/open sessions don't read as a
         // 32767-lap race and wreck fuel-to-finish.
         SessionLapsRemaining: t.SessionLapsRemainEx is { } lr and < UnlimitedLaps ? lr : null,

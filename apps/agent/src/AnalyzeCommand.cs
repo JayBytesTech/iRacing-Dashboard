@@ -1,6 +1,7 @@
 using IracingEngineer.Coaching;
 using IracingEngineer.Journal;
 using IracingEngineer.Strategy.Fuel;
+using IracingEngineer.TelemetryCore.Events;
 using IracingEngineer.TelemetryCore.SessionInfo;
 
 namespace IracingEngineer.Agent;
@@ -36,6 +37,7 @@ public static class AnalyzeCommand
 
         var tracker = new FuelStrategyTracker();
         var traceRecorder = new LapTraceRecorder();
+        var eventDetector = new EventDetector();
         SessionInfoData? session = null;
         long frameCount = 0;
         var lastFrameAt = DateTimeOffset.UtcNow;
@@ -49,6 +51,7 @@ public static class AnalyzeCommand
             lastFrameAt = DateTimeOffset.UtcNow;
             tracker.OnFrame(f, ResolveRaceRemaining(f, session));
             traceRecorder.OnFrame(f);
+            eventDetector.OnFrame(new EventInput(f.SessionTimeMs, f.Lap, f.OnPitRoad, f.IncidentCount));
         };
 
         Console.WriteLine($"analyze: replaying {Path.GetFileName(path)} ({new FileInfo(path).Length / (1024 * 1024)} MB) at max speed…");
@@ -74,10 +77,11 @@ public static class AnalyzeCommand
 
         PrintReport(tracker, session, frameCount, sw.Elapsed);
         PrintCoaching(traceRecorder, session);
+        PrintEvents(eventDetector);
 
         if (save)
         {
-            var record = BuildRecord(path, session, tracker, traceRecorder);
+            var record = BuildRecord(path, session, tracker, traceRecorder, eventDetector);
             var store = new JournalStore(config.Journal.DbPath);
             store.Upsert(record);
             Console.WriteLine($"  saved to journal: {record.Id}  ({Path.GetFullPath(config.Journal.DbPath)})");
@@ -250,15 +254,44 @@ public static class AnalyzeCommand
         Console.WriteLine();
     }
 
+    private static void PrintEvents(EventDetector events)
+    {
+        void Rule() => Console.WriteLine(new string('─', 64));
+        Console.WriteLine();
+        Rule();
+        Console.WriteLine("  EVENT TIMELINE");
+        Rule();
+        Console.WriteLine($"  Pit stops : {events.PitStops}     Incidents : {events.Incidents}x");
+        if (events.Events.Count == 0)
+        {
+            Console.WriteLine("  (no pit/incident events detected)");
+            Console.WriteLine();
+            return;
+        }
+        foreach (var e in events.Events)
+        {
+            var t = TimeSpan.FromMilliseconds(e.SessionTimeMs);
+            var label = e.Kind switch
+            {
+                RaceEventKind.PitEntry => "pit entry",
+                RaceEventKind.PitExit => "pit exit",
+                RaceEventKind.Incident => $"incident {e.Detail}",
+                _ => e.Kind.ToString(),
+            };
+            Console.WriteLine($"  {t:hh\\:mm\\:ss}  lap {e.Lap?.ToString() ?? "?",-3}  {label}");
+        }
+        Console.WriteLine();
+    }
+
     /// <summary>Assemble a journal SessionRecord from the analyzed .ibt (auto fields only; notes stay blank).</summary>
-    private static SessionRecord BuildRecord(string path, SessionInfoData? session, FuelStrategyTracker tracker, LapTraceRecorder traces)
+    private static SessionRecord BuildRecord(string path, SessionInfoData? session, FuelStrategyTracker tracker, LapTraceRecorder traces, EventDetector events)
     {
         var id = "ibt:" + Path.GetFileName(path);
         return SessionRecordFactory.Build(
             id,
             source: id,
             capturedAt: new DateTimeOffset(File.GetLastWriteTimeUtc(path), TimeSpan.Zero),
-            session, tracker, traces);
+            session, tracker, traces, events);
     }
 
     private static double Median(IReadOnlyList<double> sorted)

@@ -105,7 +105,17 @@ export interface SnapshotPayload {
   cars: Car[];
   strategy: { fuel?: FuelEstimate; stintPlan?: StintPlan | null } | null;
   coaching?: CoachingSnapshot | null;
-  events: unknown[];
+  events: RaceEvent[];
+}
+
+export type RaceEventKind = 'PitEntry' | 'PitExit' | 'Incident';
+
+/** A discrete thing that happened in the session, for the event timeline. */
+export interface RaceEvent {
+  sessionTimeMs: number;
+  lap: number | null;
+  kind: RaceEventKind;
+  detail: string | null;
 }
 
 export interface LiveSnapshot {

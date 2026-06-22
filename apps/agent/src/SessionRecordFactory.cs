@@ -1,6 +1,7 @@
 using IracingEngineer.Coaching;
 using IracingEngineer.Journal;
 using IracingEngineer.Strategy.Fuel;
+using IracingEngineer.TelemetryCore.Events;
 using IracingEngineer.TelemetryCore.SessionInfo;
 
 namespace IracingEngineer.Agent;
@@ -18,7 +19,8 @@ public static class SessionRecordFactory
         DateTimeOffset capturedAt,
         SessionInfoData? session,
         FuelStrategyTracker fuelTracker,
-        LapTraceRecorder traceRecorder)
+        LapTraceRecorder traceRecorder,
+        EventDetector? events = null)
     {
         var clean = FuelModel.CleanLaps(fuelTracker.Laps);
         var consistency = CoachingModel.Consistency(traceRecorder.Traces);
@@ -49,6 +51,8 @@ public static class SessionRecordFactory
             StdDevSec = consistency?.StdDevSec,
             FuelBurnPerLapLiters = fuel.FuelBurnPerLapLiters,
             Stops = stops,
+            PitStops = events?.PitStops,
+            Incidents = events?.Incidents,
             Source = source,
         };
     }

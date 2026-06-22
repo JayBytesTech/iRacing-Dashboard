@@ -37,6 +37,7 @@ public class RecordingRoundTripTests
         LapCompleted: 4,
         LapDistPct: 0.42,
         OnPitRoad: false,
+        IncidentCount: 4,
         SessionLapsRemaining: 20,
         SessionTimeRemainingSec: null,
         SessionNum: 0,

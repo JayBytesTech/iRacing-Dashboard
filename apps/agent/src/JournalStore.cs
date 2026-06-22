@@ -45,6 +45,23 @@ public sealed class JournalStore
             );
             """;
         cmd.ExecuteNonQuery();
+
+        // Migrations: add columns introduced after the first schema so existing journal DBs keep working.
+        AddColumnIfMissing(c, "pitStops", "INTEGER");
+        AddColumnIfMissing(c, "incidents", "INTEGER");
+    }
+
+    private static void AddColumnIfMissing(SqliteConnection c, string column, string type)
+    {
+        using (var check = c.CreateCommand())
+        {
+            check.CommandText = "SELECT COUNT(*) FROM pragma_table_info('sessions') WHERE name = $name;";
+            check.Parameters.AddWithValue("$name", column);
+            if (Convert.ToInt64(check.ExecuteScalar()) > 0) return;
+        }
+        using var alter = c.CreateCommand();
+        alter.CommandText = $"ALTER TABLE sessions ADD COLUMN {column} {type};";
+        alter.ExecuteNonQuery();
     }
 
     /// <summary>Insert or update. Re-capturing the same id refreshes the auto fields but keeps the journal.</summary>
@@ -58,10 +75,10 @@ public sealed class JournalStore
         cmd.CommandText = """
             INSERT OR REPLACE INTO sessions
                 (id, capturedAt, track, trackConfig, car, sessionType, laps, cleanLaps,
-                 bestLapSec, stdDevSec, fuelBurnPerLapLiters, stops, source, title, notes, rating, tags)
+                 bestLapSec, stdDevSec, fuelBurnPerLapLiters, stops, pitStops, incidents, source, title, notes, rating, tags)
             VALUES
                 ($id, $capturedAt, $track, $trackConfig, $car, $sessionType, $laps, $cleanLaps,
-                 $bestLapSec, $stdDevSec, $fuelBurnPerLapLiters, $stops, $source, $title, $notes, $rating, $tags);
+                 $bestLapSec, $stdDevSec, $fuelBurnPerLapLiters, $stops, $pitStops, $incidents, $source, $title, $notes, $rating, $tags);
             """;
         Bind(cmd, rec);
         cmd.ExecuteNonQuery();
@@ -124,6 +141,8 @@ public sealed class JournalStore
         cmd.Parameters.AddWithValue("$stdDevSec", (object?)r.StdDevSec ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$fuelBurnPerLapLiters", (object?)r.FuelBurnPerLapLiters ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$stops", (object?)r.Stops ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$pitStops", (object?)r.PitStops ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$incidents", (object?)r.Incidents ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$source", (object?)r.Source ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$title", (object?)r.Title ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$notes", (object?)r.Notes ?? DBNull.Value);
@@ -155,6 +174,8 @@ public sealed class JournalStore
             StdDevSec = D("stdDevSec"),
             FuelBurnPerLapLiters = D("fuelBurnPerLapLiters"),
             Stops = I("stops"),
+            PitStops = I("pitStops"),
+            Incidents = I("incidents"),
             Source = S("source"),
             Title = S("title"),
             Notes = S("notes"),

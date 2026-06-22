@@ -7,6 +7,7 @@ import { RelativeWidget } from '@/components/RelativeWidget';
 import { LeaderboardWidget } from '@/components/LeaderboardWidget';
 import { TrackMapWidget } from '@/components/TrackMapWidget';
 import { CoachingWidget } from '@/components/CoachingWidget';
+import { EventTimelineWidget } from '@/components/EventTimelineWidget';
 import { num } from '@/lib/format';
 import Link from 'next/link';
 
@@ -78,6 +79,7 @@ export default function LivePage() {
             />
             <CoachingWidget coaching={snapshot.coaching} />
             <RelativeWidget player={snapshot.player} cars={snapshot.cars} />
+            <EventTimelineWidget events={snapshot.events} />
           </div>
 
           <LeaderboardWidget player={snapshot.player} cars={snapshot.cars} />

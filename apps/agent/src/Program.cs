@@ -40,6 +40,7 @@ var hub = new WebSocketHub(jsonOptions);
 var builder = new SnapshotBuilder(config.Privacy);
 var fuelTracker = new FuelStrategyTracker();
 var traceRecorder = new LapTraceRecorder();
+var eventDetector = new IracingEngineer.TelemetryCore.Events.EventDetector();
 
 using var telemetryLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
 // Source: replay our own multi-car recording, else the iRacing SDK (live shared memory or .ibt).
@@ -84,7 +85,7 @@ void CaptureSession(string reason)
         var capturedAt = ibt && File.Exists(config.Telemetry.IbtPath!)
             ? new DateTimeOffset(File.GetLastWriteTimeUtc(config.Telemetry.IbtPath!), TimeSpan.Zero)
             : DateTimeOffset.UtcNow;
-        var record = SessionRecordFactory.Build(id, ibt ? id : "live", capturedAt, latestSession, fuelTracker, traceRecorder);
+        var record = SessionRecordFactory.Build(id, ibt ? id : "live", capturedAt, latestSession, fuelTracker, traceRecorder, eventDetector);
         journal.Upsert(record);
         Console.WriteLine($"[journal] captured session {sn} ({reason}): {record.Laps} laps, " +
                           $"best {record.BestLapSec?.ToString("F2") ?? "—"}s -> {record.Id}");
@@ -110,10 +111,12 @@ source.FrameReceived += f =>
         activeSessionNum = sn;
         fuelTracker = new FuelStrategyTracker();
         traceRecorder = new LapTraceRecorder();
+        eventDetector = new IracingEngineer.TelemetryCore.Events.EventDetector();
     }
 
     fuelTracker.OnFrame(f, ResolveRaceRemaining(f, latestSession));
     traceRecorder.OnFrame(f);
+    eventDetector.OnFrame(new IracingEngineer.TelemetryCore.Events.EventInput(f.SessionTimeMs, f.Lap, f.OnPitRoad, f.IncidentCount));
     recorder?.OnFrame(f);
 };
 
@@ -180,7 +183,11 @@ _ = Task.Run(async () =>
         var ageMs = (long)(DateTimeOffset.UtcNow - lastFrameAt).TotalMilliseconds;
         var trackMeters = (latestSession?.TrackLengthKm ?? 0) * 1000.0;
         var coaching = CoachingSnapshotBuilder.Build(traceRecorder.Traces, trackMeters);
-        var snapshot = builder.Build(frame, iracingConnected, ageMs, fuelTracker.Current, coaching);
+        // Most recent events first, capped so the payload stays small (the timeline shows the latest).
+        var recentEvents = eventDetector.Events.Count <= 20
+            ? eventDetector.Events.Reverse().ToList()
+            : eventDetector.Events.Skip(eventDetector.Events.Count - 20).Reverse().ToList();
+        var snapshot = builder.Build(frame, iracingConnected, ageMs, fuelTracker.Current, coaching, recentEvents);
         await hub.BroadcastAsync("liveSnapshot", snapshot, cts.Token);
     }
 });

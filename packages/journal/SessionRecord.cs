@@ -23,6 +23,10 @@ public sealed record SessionRecord
     public double? StdDevSec { get; init; }
     public double? FuelBurnPerLapLiters { get; init; }
     public int? Stops { get; init; }
+    /// <summary>Pit stops detected from pit-road crossings.</summary>
+    public int? PitStops { get; init; }
+    /// <summary>Incident points accrued during the session (iRacing's "x").</summary>
+    public int? Incidents { get; init; }
     /// <summary>Where it came from, e.g. "ibt:watkinsglen…" or "live".</summary>
     public string? Source { get; init; }
 

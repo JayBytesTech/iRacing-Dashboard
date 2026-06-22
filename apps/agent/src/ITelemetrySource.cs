@@ -39,6 +39,8 @@ public record TelemetryFrame(
     int? LapCompleted,
     double? LapDistPct,
     bool? OnPitRoad,
+    // Player's cumulative session incident count (iRacing's "x"); rises drive Incident events.
+    int? IncidentCount,
     // Live race-remaining (counts down) — these come from telemetry vars, not SessionInfo YAML.
     int? SessionLapsRemaining,
     double? SessionTimeRemainingSec,
