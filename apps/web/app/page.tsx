@@ -6,6 +6,7 @@ import { FuelWidget } from '@/components/FuelWidget';
 import { RelativeWidget } from '@/components/RelativeWidget';
 import { LeaderboardWidget } from '@/components/LeaderboardWidget';
 import { TrackMapWidget } from '@/components/TrackMapWidget';
+import { CoachingWidget } from '@/components/CoachingWidget';
 import { num } from '@/lib/format';
 import Link from 'next/link';
 
@@ -66,7 +67,12 @@ export default function LivePage() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-            <TrackMapWidget player={snapshot.player} cars={snapshot.cars} />
+            <TrackMapWidget
+              player={snapshot.player}
+              cars={snapshot.cars}
+              lossZones={snapshot.coaching?.lastLap?.lossZones}
+            />
+            <CoachingWidget coaching={snapshot.coaching} />
             <RelativeWidget player={snapshot.player} cars={snapshot.cars} />
           </div>
 

@@ -134,6 +134,40 @@ function stintPlan(fe) {
   };
 }
 
+// Stand-in for the C# CoachingSnapshotBuilder: consistency + the latest lap's delta-to-reference with
+// time-loss zones, in the same contract shape, so the dashboard CoachingWidget + track-map overlay
+// have data to render. The delta curve ramps through the two loss zones.
+function coaching() {
+  const bins = 50;
+  const zones = [
+    { startPct: 0.33, endPct: 0.45, secondsLost: 0.9 }, // a slow mid-lap complex
+    { startPct: 0.7, endPct: 0.78, secondsLost: 0.5 },  // a missed apex late in the lap
+  ];
+  const cumulative = [];
+  let acc = 0;
+  for (let i = 0; i < bins; i++) {
+    const pct = i / bins;
+    for (const z of zones) {
+      if (pct >= z.startPct && pct < z.endPct) acc += z.secondsLost / ((z.endPct - z.startPct) * bins);
+    }
+    cumulative.push(Number(acc.toFixed(3)));
+  }
+  return {
+    referenceLap: Math.max(1, player.lap - 4),
+    lapCount: Math.max(1, player.lap - 1),
+    bestLapSec: 104.8,
+    meanLapSec: 105.2,
+    stdDevSec: 0.31,
+    spreadSec: 0.9,
+    lastLap: {
+      lap: Math.max(1, player.lap - 1),
+      finalDeltaSec: Number(acc.toFixed(2)),
+      cumulativeDeltaSec: cumulative,
+      lossZones: zones,
+    },
+  };
+}
+
 function snapshotPayload() {
   const speedKph = 150 + 60 * Math.sin(player.lapDistPct * Math.PI * 4); // fake corners/straights
   const rpm = 5000 + 3000 * Math.abs(Math.sin(player.lapDistPct * Math.PI * 4));
@@ -187,6 +221,7 @@ function snapshotPayload() {
       }),
     ),
     strategy: (() => { const fuel = fuelEstimate(); return { fuel, stintPlan: stintPlan(fuel) }; })(),
+    coaching: coaching(),
     events: [],
   };
 }

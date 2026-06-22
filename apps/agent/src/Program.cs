@@ -29,6 +29,7 @@ var jsonOptions = new JsonSerializerOptions
 var hub = new WebSocketHub(jsonOptions);
 var builder = new SnapshotBuilder(config.Privacy);
 var fuelTracker = new FuelStrategyTracker();
+var traceRecorder = new LapTraceRecorder();
 
 using var telemetryLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
 ITelemetrySource source = new IRacingTelemetrySource(config, telemetryLoggerFactory.CreateLogger("iracing"));
@@ -48,6 +49,7 @@ source.FrameReceived += f =>
     latest = f;
     lastFrameAt = DateTimeOffset.UtcNow;
     fuelTracker.OnFrame(f, ResolveRaceRemaining(f, latestSession));
+    traceRecorder.OnFrame(f);
 };
 
 // Remaining laps/time count down via telemetry; SessionInfo tells us which one bounds the race.
@@ -98,7 +100,9 @@ _ = Task.Run(async () =>
     {
         if (latest is not { } frame) continue;
         var ageMs = (long)(DateTimeOffset.UtcNow - lastFrameAt).TotalMilliseconds;
-        var snapshot = builder.Build(frame, iracingConnected, ageMs, fuelTracker.Current);
+        var trackMeters = (latestSession?.TrackLengthKm ?? 0) * 1000.0;
+        var coaching = CoachingSnapshotBuilder.Build(traceRecorder.Traces, trackMeters);
+        var snapshot = builder.Build(frame, iracingConnected, ageMs, fuelTracker.Current, coaching);
         await hub.BroadcastAsync("liveSnapshot", snapshot, cts.Token);
     }
 });

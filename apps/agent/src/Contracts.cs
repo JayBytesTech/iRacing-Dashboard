@@ -25,7 +25,26 @@ public record LiveSnapshot(
     CarModel Player,
     IReadOnlyList<CarModel> Cars,
     object? Strategy,
-    IReadOnlyList<object> Events);
+    IReadOnlyList<object> Events,
+    CoachingSnapshot? Coaching = null);
+
+/// <summary>Driving-coach summary for the dashboard: consistency + the latest lap's delta to reference.</summary>
+public record CoachingSnapshot(
+    int? ReferenceLap,
+    int LapCount,
+    double? BestLapSec,
+    double? MeanLapSec,
+    double? StdDevSec,
+    double? SpreadSec,
+    LapDeltaSnapshot? LastLap);
+
+public record LapDeltaSnapshot(
+    int Lap,
+    double FinalDeltaSec,
+    IReadOnlyList<double> CumulativeDeltaSec,
+    IReadOnlyList<LossZoneSnapshot> LossZones);
+
+public record LossZoneSnapshot(double StartPct, double EndPct, double SecondsLost);
 
 public record ConnectionState(bool IracingConnected, bool? IsOnTrack, bool? IsReplayPlaying, long DataAgeMs);
 

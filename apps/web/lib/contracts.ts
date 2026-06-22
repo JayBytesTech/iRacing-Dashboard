@@ -34,6 +34,32 @@ export interface StintPlan {
   lapsOnCurrentFuel: number;
 }
 
+/** One stretch of track where a lap loses time to the reference lap. */
+export interface LossZone {
+  startPct: number;
+  endPct: number;
+  secondsLost: number;
+}
+
+/** A lap's delta to the reference: final gap, cumulative curve by bin, and worst loss zones. */
+export interface LapDelta {
+  lap: number;
+  finalDeltaSec: number;
+  cumulativeDeltaSec: number[];
+  lossZones: LossZone[];
+}
+
+/** Driving-coach summary: consistency over representative laps + the latest lap's delta. */
+export interface CoachingSnapshot {
+  referenceLap: number | null;
+  lapCount: number;
+  bestLapSec: number | null;
+  meanLapSec: number | null;
+  stdDevSec: number | null;
+  spreadSec: number | null;
+  lastLap: LapDelta | null;
+}
+
 export interface SessionState {
   sessionId: string | null;
   trackName: string | null;
@@ -78,6 +104,7 @@ export interface SnapshotPayload {
   player: Car;
   cars: Car[];
   strategy: { fuel?: FuelEstimate; stintPlan?: StintPlan | null } | null;
+  coaching?: CoachingSnapshot | null;
   events: unknown[];
 }
 

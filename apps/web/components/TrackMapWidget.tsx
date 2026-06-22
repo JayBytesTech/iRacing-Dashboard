@@ -1,4 +1,4 @@
-import type { Car } from '@/lib/contracts';
+import type { Car, LossZone } from '@/lib/contracts';
 import { polarPosition } from '@/lib/trackmap';
 import { classColor } from '@/lib/format';
 
@@ -10,7 +10,15 @@ const SIZE = 260;
 const C = SIZE / 2;
 const R = 100;
 
-export function TrackMapWidget({ player, cars }: { player: Car; cars: Car[] }) {
+// SVG arc along the track ribbon between two lap-distance fractions (clockwise, matching car motion).
+function arcPath(startPct: number, endPct: number): string {
+  const a = polarPosition(startPct, C, C, R);
+  const b = polarPosition(endPct, C, C, R);
+  const largeArc = endPct - startPct > 0.5 ? 1 : 0;
+  return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
+}
+
+export function TrackMapWidget({ player, cars, lossZones }: { player: Car; cars: Car[]; lossZones?: LossZone[] }) {
   const field = [player, ...cars].filter((c) => c.lapDistPct != null);
   // Draw others first, player last so it's always on top.
   const ordered = [...field].sort((a) => (a.isPlayer ? 1 : -1));
@@ -35,6 +43,17 @@ export function TrackMapWidget({ player, cars }: { player: Car; cars: Car[] }) {
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width="100%" style={{ maxWidth: 320, display: 'block', margin: '0 auto' }}>
         {/* track ribbon */}
         <circle cx={C} cy={C} r={R} fill="none" stroke="#2a3142" strokeWidth={14} />
+        {/* coaching: highlight where the latest lap lost the most time */}
+        {(lossZones ?? []).map((z, i) => (
+          <path
+            key={i}
+            d={arcPath(z.startPct, z.endPct)}
+            fill="none"
+            stroke="#ff9d5c"
+            strokeWidth={14}
+            strokeOpacity={0.55}
+          />
+        ))}
         {/* start/finish tick */}
         <line x1={sf.x} y1={sf.y - 12} x2={sf.x} y2={sf.y + 12} stroke="#e6e6e6" strokeWidth={2} />
         <text x={C} y={18} textAnchor="middle" fontSize={9} fill="#8a90a0">
