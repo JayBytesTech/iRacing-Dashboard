@@ -85,8 +85,9 @@ public static class AnalyzeCommand
         if (save)
         {
             var record = BuildRecord(path, session, tracker, traceRecorder, eventDetector);
+            var detail = SessionDetailFactory.Build(session, tracker, traceRecorder, eventDetector);
             var store = new JournalStore(config.Journal.DbPath);
-            store.Upsert(record);
+            store.Upsert(record, SessionDetailFactory.Serialize(detail));
             if (quiet)
             {
                 // One compact line per file for the batch importer.

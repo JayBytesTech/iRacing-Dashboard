@@ -1,6 +1,8 @@
 // Client for the agent's driver's-journal HTTP API. The agent serves it over plain HTTP on the same
 // host as the live WebSocket; we derive the base URL from the same env var.
 
+import type { CoachingSnapshot, RaceEvent } from '@/lib/contracts';
+
 export interface JournalSession {
   id: string;
   capturedAt: string;
@@ -48,5 +50,61 @@ export async function saveEntry(id: string, edit: JournalEdit): Promise<JournalS
     body: JSON.stringify(edit),
   });
   if (!r.ok) throw new Error(`journal save failed: ${r.status}`);
+  return r.json();
+}
+
+export async function getSession(id: string): Promise<JournalSession> {
+  const r = await fetch(`${AGENT_HTTP}/journal/${encodeURIComponent(id)}`);
+  if (!r.ok) throw new Error(`journal get failed: ${r.status}`);
+  return r.json();
+}
+
+// ---- full session analysis (the detail view) ------------------------------------------------
+// Computed once at capture time and stored by the agent; mirrors the C# SessionDetail. Null fields
+// are omitted on the wire (agent uses WhenWritingNull), so guard with `!= null` / optional access.
+
+export interface StintSummary {
+  stintNo: number;
+  fromLap: number;
+  toLap: number;
+  laps: number;
+  cleanLaps: number;
+  avgBurnLiters: number | null;
+}
+
+export interface FuelDetail {
+  burnPerLapMeanLiters: number | null;
+  burnPerLapStdevLiters: number | null;
+  fastestLapSec: number | null;
+  medianLapSec: number | null;
+  cleanLaps: number;
+  totalLaps: number;
+  stints: StintSummary[];
+}
+
+export interface LapGapEntry {
+  lap: number;
+  lapTimeSec: number;
+  gapToBestSec: number;
+}
+
+export interface SessionDetail {
+  trackName: string | null;
+  trackConfig: string | null;
+  car: string | null;
+  sessionType: string | null;
+  laps: number;
+  cleanLaps: number;
+  fuel: FuelDetail | null;
+  coaching: CoachingSnapshot | null;
+  lapGaps: LapGapEntry[];
+  events: RaceEvent[];
+}
+
+/** The stored analysis for a session, or null if none was captured (e.g. an older entry). */
+export async function getSessionDetail(id: string): Promise<SessionDetail | null> {
+  const r = await fetch(`${AGENT_HTTP}/journal/${encodeURIComponent(id)}/detail`);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`journal detail failed: ${r.status}`);
   return r.json();
 }

@@ -49,6 +49,8 @@ public sealed class JournalStore
         // Migrations: add columns introduced after the first schema so existing journal DBs keep working.
         AddColumnIfMissing(c, "pitStops", "INTEGER");
         AddColumnIfMissing(c, "incidents", "INTEGER");
+        // Full analysis blob (fuel/coach/timeline) computed at capture time for the detail view.
+        AddColumnIfMissing(c, "detail", "TEXT");
     }
 
     private static void AddColumnIfMissing(SqliteConnection c, string column, string type)
@@ -64,8 +66,12 @@ public sealed class JournalStore
         alter.ExecuteNonQuery();
     }
 
-    /// <summary>Insert or update. Re-capturing the same id refreshes the auto fields but keeps the journal.</summary>
-    public SessionRecord Upsert(SessionRecord incoming)
+    /// <summary>
+    /// Insert or update. Re-capturing the same id refreshes the auto fields (including the analysis
+    /// <paramref name="detailJson"/>) but keeps the driver's journal. Detail is auto-derived, so it is
+    /// always overwritten by a re-capture.
+    /// </summary>
+    public SessionRecord Upsert(SessionRecord incoming, string? detailJson = null)
     {
         var existing = Get(incoming.Id);
         var rec = existing is null ? incoming : incoming.PreservingJournalFrom(existing);
@@ -75,14 +81,26 @@ public sealed class JournalStore
         cmd.CommandText = """
             INSERT OR REPLACE INTO sessions
                 (id, capturedAt, track, trackConfig, car, sessionType, laps, cleanLaps,
-                 bestLapSec, stdDevSec, fuelBurnPerLapLiters, stops, pitStops, incidents, source, title, notes, rating, tags)
+                 bestLapSec, stdDevSec, fuelBurnPerLapLiters, stops, pitStops, incidents, source, detail, title, notes, rating, tags)
             VALUES
                 ($id, $capturedAt, $track, $trackConfig, $car, $sessionType, $laps, $cleanLaps,
-                 $bestLapSec, $stdDevSec, $fuelBurnPerLapLiters, $stops, $pitStops, $incidents, $source, $title, $notes, $rating, $tags);
+                 $bestLapSec, $stdDevSec, $fuelBurnPerLapLiters, $stops, $pitStops, $incidents, $source, $detail, $title, $notes, $rating, $tags);
             """;
         Bind(cmd, rec);
+        cmd.Parameters.AddWithValue("$detail", (object?)detailJson ?? DBNull.Value);
         cmd.ExecuteNonQuery();
         return rec;
+    }
+
+    /// <summary>The stored analysis JSON for a session (raw, already lowerCamelCase), or null if none.</summary>
+    public string? GetDetail(string id)
+    {
+        using var c = Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT detail FROM sessions WHERE id = $id;";
+        cmd.Parameters.AddWithValue("$id", id);
+        var result = cmd.ExecuteScalar();
+        return result is null or DBNull ? null : (string)result;
     }
 
     public IReadOnlyList<SessionRecord> List()

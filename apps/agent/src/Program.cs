@@ -91,7 +91,8 @@ void CaptureSession(string reason)
             ? new DateTimeOffset(File.GetLastWriteTimeUtc(config.Telemetry.IbtPath!), TimeSpan.Zero)
             : DateTimeOffset.UtcNow;
         var record = SessionRecordFactory.Build(id, ibt ? id : "live", capturedAt, latestSession, fuelTracker, traceRecorder, eventDetector);
-        journal.Upsert(record);
+        var detail = SessionDetailFactory.Build(latestSession, fuelTracker, traceRecorder, eventDetector);
+        journal.Upsert(record, SessionDetailFactory.Serialize(detail));
         Console.WriteLine($"[journal] captured session {sn} ({reason}): {record.Laps} laps, " +
                           $"best {record.BestLapSec?.ToString("F2") ?? "—"}s -> {record.Id}");
     }
@@ -157,6 +158,9 @@ app.MapGet("/status", () => Results.Json(new
 app.MapGet("/journal", () => Results.Json(journal.List(), jsonOptions));
 app.MapGet("/journal/{id}", (string id) =>
     journal.Get(id) is { } r ? Results.Json(r, jsonOptions) : Results.NotFound());
+// Full analysis blob for the in-browser detail view (stored as lowerCamelCase JSON at capture time).
+app.MapGet("/journal/{id}/detail", (string id) =>
+    journal.GetDetail(id) is { } d ? Results.Content(d, "application/json") : Results.NotFound());
 app.MapPost("/journal/{id}", (string id, JournalEdit edit) =>
     journal.SaveEdit(id, edit) is { } r ? Results.Json(r, jsonOptions) : Results.NotFound());
 

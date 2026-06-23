@@ -136,7 +136,12 @@ function EntryEditor({ session, onSaved }: { session: JournalSession; onSaved: (
   return (
     <section style={{ background: '#141925', borderRadius: 10, padding: 18 }}>
       {/* Auto-captured summary (read-only) */}
-      <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.5 }}>Captured</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.5 }}>Captured</span>
+        <Link href={`/log/${encodeURIComponent(session.id)}`} style={{ color: '#6aa3ff', fontSize: 13, fontWeight: 600 }}>
+          Full analysis →
+        </Link>
+      </div>
       <h2 style={{ margin: '4px 0 2px', fontSize: 18 }}>
         {[session.track, session.trackConfig].filter(Boolean).join(' · ')}
       </h2>
