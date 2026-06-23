@@ -2,6 +2,7 @@
 // host as the live WebSocket; we derive the base URL from the same env var.
 
 import type { CoachingSnapshot, LossZone, RaceEvent } from '@/lib/contracts';
+import type { PaceLap } from '@/lib/pace';
 
 export interface JournalSession {
   id: string;
@@ -108,6 +109,7 @@ export interface SessionDetail {
   fuel: FuelDetail | null;
   coaching: CoachingSnapshot | null;
   inputs: LapInputs | null;
+  paceLaps: PaceLap[];
   lapGaps: LapGapEntry[];
   events: RaceEvent[];
 }

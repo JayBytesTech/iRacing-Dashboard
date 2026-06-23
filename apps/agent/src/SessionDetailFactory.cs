@@ -49,6 +49,11 @@ public static class SessionDetailFactory
             ? d.CarScreenName
             : null;
 
+        var paceLaps = laps
+            .Where(l => l.LapTimeSec > 0)
+            .Select(l => new PaceLap(l.Lap, l.LapTimeSec, l.UsedPitRoad, FuelModel.IsCleanLap(l)))
+            .ToList();
+
         var evs = events?.Events.ToList() ?? new List<RaceEvent>();
 
         return new SessionDetail(
@@ -62,6 +67,7 @@ public static class SessionDetailFactory
             Coaching: coaching,
             Inputs: inputs,
             Reference: reference,
+            PaceLaps: paceLaps,
             LapGaps: lapGaps,
             Events: evs);
     }

@@ -20,8 +20,14 @@ public record SessionDetail(
     CoachingSnapshot? Coaching,
     LapInputs? Inputs,
     ReferenceTrace? Reference,
+    IReadOnlyList<PaceLap> PaceLaps,
     IReadOnlyList<LapGapEntry> LapGaps,
     IReadOnlyList<RaceEvent> Events);
+
+/// <summary>Every completed lap's time + context, for the pace / tyre-degradation view. Pit laps mark
+/// stint boundaries; non-clean laps (incidents, traffic, in/out laps) are the outliers to dim and exclude
+/// from a degradation fit.</summary>
+public record PaceLap(int Lap, double LapTimeSec, bool UsedPitRoad, bool Clean);
 
 /// <summary>The session's best clean lap, stored in full (bin-aligned speed + inputs + track length) so a
 /// *later* session can compare its best lap against this one — the cross-session "best ever here" view.</summary>

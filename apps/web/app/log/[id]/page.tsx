@@ -15,8 +15,10 @@ import {
 import { CoachingWidget } from '@/components/CoachingWidget';
 import { InputTraces } from '@/components/InputTraces';
 import { CompareSection } from '@/components/CompareSection';
+import { PaceChart } from '@/components/PaceChart';
 import { TrackMapWidget } from '@/components/TrackMapWidget';
 import { EventTimelineWidget } from '@/components/EventTimelineWidget';
+import { buildPace } from '@/lib/pace';
 import type { Car } from '@/lib/contracts';
 
 // Full session analysis: the CLI `analyze` report, in the browser. Everything was computed once at
@@ -26,6 +28,7 @@ import type { Car } from '@/lib/contracts';
 
 const SECTIONS = [
   { id: 'fuel', label: 'Fuel & stints' },
+  { id: 'pace', label: 'Pace' },
   { id: 'coach', label: 'Coach' },
   { id: 'compare', label: 'vs best' },
   { id: 'map', label: 'Track map' },
@@ -113,6 +116,10 @@ export default function SessionDetailPage() {
 
           <Section id="fuel" title="Fuel & stints">
             <FuelPanel fuel={detail.fuel} />
+          </Section>
+
+          <Section id="pace" title="Pace & degradation">
+            <PaceChart pace={buildPace(detail.paceLaps ?? [])} />
           </Section>
 
           <Section id="coach" title="Driving coach">
