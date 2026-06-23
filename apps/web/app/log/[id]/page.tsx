@@ -3,9 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getSession, getSessionDetail, type JournalSession, type SessionDetail, type FuelDetail } from '@/lib/journal';
+import {
+  getSession,
+  getSessionDetail,
+  getSessionComparison,
+  type JournalSession,
+  type SessionDetail,
+  type FuelDetail,
+  type CompareResult,
+} from '@/lib/journal';
 import { CoachingWidget } from '@/components/CoachingWidget';
 import { InputTraces } from '@/components/InputTraces';
+import { CompareSection } from '@/components/CompareSection';
 import { TrackMapWidget } from '@/components/TrackMapWidget';
 import { EventTimelineWidget } from '@/components/EventTimelineWidget';
 import type { Car } from '@/lib/contracts';
@@ -18,6 +27,7 @@ import type { Car } from '@/lib/contracts';
 const SECTIONS = [
   { id: 'fuel', label: 'Fuel & stints' },
   { id: 'coach', label: 'Coach' },
+  { id: 'compare', label: 'vs best' },
   { id: 'map', label: 'Track map' },
   { id: 'timeline', label: 'Timeline' },
 ] as const;
@@ -27,14 +37,16 @@ export default function SessionDetailPage() {
   const id = decodeURIComponent(params.id);
   const [session, setSession] = useState<JournalSession | null>(null);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
+  const [compare, setCompare] = useState<CompareResult | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([getSession(id), getSessionDetail(id)])
-      .then(([s, d]) => {
+    Promise.all([getSession(id), getSessionDetail(id), getSessionComparison(id)])
+      .then(([s, d, c]) => {
         setSession(s);
         setDetail(d);
+        setCompare(c);
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoaded(true));
@@ -107,6 +119,10 @@ export default function SessionDetailPage() {
             <CoachingWidget coaching={detail.coaching} />
             {detail.inputs && <InputTraces inputs={detail.inputs} lossZones={detail.coaching?.lastLap?.lossZones} />}
             <LapGapTable detail={detail} />
+          </Section>
+
+          <Section id="compare" title="Vs your best lap here">
+            {compare ? <CompareSection result={compare} /> : <div style={{ opacity: 0.5 }}>—</div>}
           </Section>
 
           <Section id="map" title="Track map — time-loss zones">

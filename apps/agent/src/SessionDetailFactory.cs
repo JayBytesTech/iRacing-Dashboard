@@ -25,6 +25,9 @@ public static class SessionDetailFactory
     /// <summary>Serialize a detail blob for storage (lowerCamelCase + enum names, matching the live wire).</summary>
     public static string Serialize(SessionDetail detail) => JsonSerializer.Serialize(detail, JsonOptions);
 
+    /// <summary>Read back a stored detail blob (same camelCase options as <see cref="Serialize"/>).</summary>
+    public static SessionDetail? Deserialize(string json) => JsonSerializer.Deserialize<SessionDetail>(json, JsonOptions);
+
     public static SessionDetail Build(
         SessionInfoData? session,
         FuelStrategyTracker fuelTracker,
@@ -36,7 +39,7 @@ public static class SessionDetailFactory
 
         var fuel = laps.Count > 0 ? BuildFuel(laps, clean) : null;
         var trackMeters = (session?.TrackLengthKm ?? 0) * 1000.0;
-        var (coaching, inputs) = BuildCoaching(traceRecorder.Traces, trackMeters);
+        var (coaching, inputs, reference) = BuildCoaching(traceRecorder.Traces, trackMeters);
 
         var lapGaps = CoachingModel.Consistency(traceRecorder.Traces)?.LapGaps
             .Select(g => new LapGapEntry(g.Lap, g.LapTimeSec, g.GapToBestSec))
@@ -58,6 +61,7 @@ public static class SessionDetailFactory
             Fuel: fuel,
             Coaching: coaching,
             Inputs: inputs,
+            Reference: reference,
             LapGaps: lapGaps,
             Events: evs);
     }
@@ -108,11 +112,17 @@ public static class SessionDetailFactory
     /// <summary>Coach the *slowest* representative lap against the reference — the most instructive lap to
     /// review after a session ("where did my bad laps go wrong"). Mirrors AnalyzeCommand.PrintCoaching, and
     /// additionally returns the two laps' throttle/brake channels so the UI can overlay the inputs.</summary>
-    private static (CoachingSnapshot? Coaching, LapInputs? Inputs) BuildCoaching(IReadOnlyList<LapTrace> traces, double trackMeters)
+    private static (CoachingSnapshot? Coaching, LapInputs? Inputs, ReferenceTrace? Reference) BuildCoaching(
+        IReadOnlyList<LapTrace> traces, double trackMeters)
     {
         var consistency = CoachingModel.Consistency(traces);
         var reference = CoachingModel.ReferenceLap(traces);
-        if (consistency is null || reference is null) return (null, null);
+        if (consistency is null || reference is null) return (null, null, null);
+
+        // Store the reference (best) lap in full so a later session can compare against it.
+        var referenceTrace = new ReferenceTrace(
+            reference.Lap, reference.LapTimeSec, trackMeters,
+            reference.SpeedMps, reference.Throttle, reference.Brake);
 
         // The slowest representative lap (other than the reference) is the one worth dissecting.
         LapTrace? worst = null;
@@ -148,7 +158,7 @@ public static class SessionDetailFactory
             StdDevSec: consistency.StdDevSec,
             SpreadSec: consistency.SpreadSec,
             LastLap: worstLap);
-        return (coaching, inputs);
+        return (coaching, inputs, referenceTrace);
     }
 
     private static double Median(IReadOnlyList<double> sorted)

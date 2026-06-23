@@ -1,7 +1,7 @@
 // Client for the agent's driver's-journal HTTP API. The agent serves it over plain HTTP on the same
 // host as the live WebSocket; we derive the base URL from the same env var.
 
-import type { CoachingSnapshot, RaceEvent } from '@/lib/contracts';
+import type { CoachingSnapshot, LossZone, RaceEvent } from '@/lib/contracts';
 
 export interface JournalSession {
   id: string;
@@ -117,5 +117,39 @@ export async function getSessionDetail(id: string): Promise<SessionDetail | null
   const r = await fetch(`${AGENT_HTTP}/journal/${encodeURIComponent(id)}/detail`);
   if (r.status === 404) return null;
   if (!r.ok) throw new Error(`journal detail failed: ${r.status}`);
+  return r.json();
+}
+
+// ---- cross-session "best ever here" comparison (computed at view time) ----------------------
+
+export interface SessionComparison {
+  targetId: string;
+  targetCapturedAt: string | null;
+  targetTitle: string | null;
+  thisBestLapSec: number | null;
+  targetBestLapSec: number | null;
+  thisLap: number;
+  targetLap: number;
+  /** This session's best lap vs the target's: positive = this is slower. */
+  finalDeltaSec: number;
+  cumulativeDeltaSec: number[];
+  lossZones: LossZone[];
+  inputs: LapInputs;
+  /** True when this session is the fastest at this track+car (target is then 2nd-fastest). */
+  thisIsBest: boolean;
+}
+
+export type CompareStatus = 'ok' | 'alone' | 'noDetail';
+
+export interface CompareResult {
+  status: CompareStatus;
+  comparison: SessionComparison | null;
+}
+
+/** Compare this session's best lap to the fastest other session at the same track+config+car. */
+export async function getSessionComparison(id: string): Promise<CompareResult> {
+  const r = await fetch(`${AGENT_HTTP}/journal/${encodeURIComponent(id)}/compare`);
+  if (r.status === 404) return { status: 'noDetail', comparison: null };
+  if (!r.ok) throw new Error(`journal compare failed: ${r.status}`);
   return r.json();
 }

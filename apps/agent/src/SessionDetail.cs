@@ -19,8 +19,19 @@ public record SessionDetail(
     FuelDetail? Fuel,
     CoachingSnapshot? Coaching,
     LapInputs? Inputs,
+    ReferenceTrace? Reference,
     IReadOnlyList<LapGapEntry> LapGaps,
     IReadOnlyList<RaceEvent> Events);
+
+/// <summary>The session's best clean lap, stored in full (bin-aligned speed + inputs + track length) so a
+/// *later* session can compare its best lap against this one — the cross-session "best ever here" view.</summary>
+public record ReferenceTrace(
+    int Lap,
+    double LapTimeSec,
+    double TrackLengthMeters,
+    IReadOnlyList<double> SpeedMps,
+    IReadOnlyList<double> Throttle,
+    IReadOnlyList<double> Brake);
 
 /// <summary>Throttle &amp; brake channels (bin-averaged 0..1, aligned bin-for-bin) for the worst
 /// representative lap and the reference lap — so the coach view can overlay them and show *why* time was

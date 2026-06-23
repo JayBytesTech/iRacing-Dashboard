@@ -161,6 +161,12 @@ app.MapGet("/journal/{id}", (string id) =>
 // Full analysis blob for the in-browser detail view (stored as lowerCamelCase JSON at capture time).
 app.MapGet("/journal/{id}/detail", (string id) =>
     journal.GetDetail(id) is { } d ? Results.Content(d, "application/json") : Results.NotFound());
+// Cross-session "best ever here" comparison, computed at view time against the fastest other session.
+app.MapGet("/journal/{id}/compare", (string id) =>
+{
+    var result = SessionCompare.Build(journal, id);
+    return result.Status == "notFound" ? Results.NotFound() : Results.Json(result, jsonOptions);
+});
 app.MapPost("/journal/{id}", (string id, JournalEdit edit) =>
     journal.SaveEdit(id, edit) is { } r ? Results.Json(r, jsonOptions) : Results.NotFound());
 
