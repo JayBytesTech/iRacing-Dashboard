@@ -85,6 +85,32 @@ describe('buildTrends', () => {
     expect(trends[0].bestConsistencySec).toBeCloseTo(0.4, 5);
   });
 
+  it('rolling form covers only the most recent 5 sessions', () => {
+    // 7 sessions, best laps 112..106 improving each time; window should be the last 5 (110..106).
+    const sessions = Array.from({ length: 7 }, (_, i) =>
+      session({
+        id: `s${i}`,
+        capturedAt: `2026-01-0${i + 1}T00:00:00Z`,
+        bestLapSec: 112 - i,
+        stdDevSec: 1.0,
+        incidents: 1,
+      }),
+    );
+    const t = buildTrends(sessions)[0];
+    expect(t.recentForm.windowSize).toBe(5);
+    expect(t.recentForm.bestLapSec).toBeCloseTo(106, 5); // newest, fastest in window
+    expect(t.recentForm.incidents).toBe(5); // 5 sessions x 1, not all 7
+    expect(t.recentForm.avgConsistencySec).toBeCloseTo(1.0, 5);
+    expect(t.recentForm.improvementSec).toBeCloseTo(4, 5); // 110 (oldest in window) - 106 (newest)
+  });
+
+  it('rolling form improvement is null with a single timed session in the window', () => {
+    const t = buildTrends([session({ id: 'a', capturedAt: '2026-01-01T00:00:00Z', bestLapSec: 108 })])[0];
+    expect(t.recentForm.windowSize).toBe(1);
+    expect(t.recentForm.improvementSec).toBeNull();
+    expect(t.recentForm.bestLapSec).toBeCloseTo(108, 5);
+  });
+
   it('skips sessions with no track and orders groups by activity', () => {
     const trends = buildTrends([
       session({ id: 'x', capturedAt: '2026-01-01T00:00:00Z', track: null }),
