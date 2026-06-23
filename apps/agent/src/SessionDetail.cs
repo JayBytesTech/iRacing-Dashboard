@@ -18,8 +18,20 @@ public record SessionDetail(
     int CleanLaps,
     FuelDetail? Fuel,
     CoachingSnapshot? Coaching,
+    LapInputs? Inputs,
     IReadOnlyList<LapGapEntry> LapGaps,
     IReadOnlyList<RaceEvent> Events);
+
+/// <summary>Throttle &amp; brake channels (bin-averaged 0..1, aligned bin-for-bin) for the worst
+/// representative lap and the reference lap — so the coach view can overlay them and show *why* time was
+/// lost (braked early/hard, lifted mid-corner). Null when there's no worst lap to compare.</summary>
+public record LapInputs(
+    int ReferenceLap,
+    int Lap,
+    IReadOnlyList<double> RefThrottle,
+    IReadOnlyList<double> RefBrake,
+    IReadOnlyList<double> LapThrottle,
+    IReadOnlyList<double> LapBrake);
 
 /// <summary>Retrospective fuel view: burn statistics over clean laps plus a per-stint breakdown.</summary>
 public record FuelDetail(

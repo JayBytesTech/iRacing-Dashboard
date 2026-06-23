@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getSession, getSessionDetail, type JournalSession, type SessionDetail, type FuelDetail } from '@/lib/journal';
 import { CoachingWidget } from '@/components/CoachingWidget';
+import { InputTraces } from '@/components/InputTraces';
 import { TrackMapWidget } from '@/components/TrackMapWidget';
 import { EventTimelineWidget } from '@/components/EventTimelineWidget';
 import type { Car } from '@/lib/contracts';
@@ -104,6 +105,7 @@ export default function SessionDetailPage() {
 
           <Section id="coach" title="Driving coach">
             <CoachingWidget coaching={detail.coaching} />
+            {detail.inputs && <InputTraces inputs={detail.inputs} lossZones={detail.coaching?.lastLap?.lossZones} />}
             <LapGapTable detail={detail} />
           </Section>
 

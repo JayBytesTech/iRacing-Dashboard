@@ -88,6 +88,16 @@ export interface LapGapEntry {
   gapToBestSec: number;
 }
 
+/** Bin-aligned throttle & brake (0..1) for the worst lap and the reference lap, to overlay. */
+export interface LapInputs {
+  referenceLap: number;
+  lap: number;
+  refThrottle: number[];
+  refBrake: number[];
+  lapThrottle: number[];
+  lapBrake: number[];
+}
+
 export interface SessionDetail {
   trackName: string | null;
   trackConfig: string | null;
@@ -97,6 +107,7 @@ export interface SessionDetail {
   cleanLaps: number;
   fuel: FuelDetail | null;
   coaching: CoachingSnapshot | null;
+  inputs: LapInputs | null;
   lapGaps: LapGapEntry[];
   events: RaceEvent[];
 }

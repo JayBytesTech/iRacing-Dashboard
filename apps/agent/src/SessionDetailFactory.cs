@@ -36,7 +36,7 @@ public static class SessionDetailFactory
 
         var fuel = laps.Count > 0 ? BuildFuel(laps, clean) : null;
         var trackMeters = (session?.TrackLengthKm ?? 0) * 1000.0;
-        var coaching = BuildCoaching(traceRecorder.Traces, trackMeters);
+        var (coaching, inputs) = BuildCoaching(traceRecorder.Traces, trackMeters);
 
         var lapGaps = CoachingModel.Consistency(traceRecorder.Traces)?.LapGaps
             .Select(g => new LapGapEntry(g.Lap, g.LapTimeSec, g.GapToBestSec))
@@ -57,6 +57,7 @@ public static class SessionDetailFactory
             CleanLaps: clean.Count,
             Fuel: fuel,
             Coaching: coaching,
+            Inputs: inputs,
             LapGaps: lapGaps,
             Events: evs);
     }
@@ -105,28 +106,41 @@ public static class SessionDetailFactory
     }
 
     /// <summary>Coach the *slowest* representative lap against the reference — the most instructive lap to
-    /// review after a session ("where did my bad laps go wrong"). Mirrors AnalyzeCommand.PrintCoaching.</summary>
-    private static CoachingSnapshot? BuildCoaching(IReadOnlyList<LapTrace> traces, double trackMeters)
+    /// review after a session ("where did my bad laps go wrong"). Mirrors AnalyzeCommand.PrintCoaching, and
+    /// additionally returns the two laps' throttle/brake channels so the UI can overlay the inputs.</summary>
+    private static (CoachingSnapshot? Coaching, LapInputs? Inputs) BuildCoaching(IReadOnlyList<LapTrace> traces, double trackMeters)
     {
         var consistency = CoachingModel.Consistency(traces);
         var reference = CoachingModel.ReferenceLap(traces);
-        if (consistency is null || reference is null) return null;
+        if (consistency is null || reference is null) return (null, null);
 
-        LapDeltaSnapshot? worstLap = null;
+        // The slowest representative lap (other than the reference) is the one worth dissecting.
+        LapTrace? worst = null;
         var representative = traces.Where(CoachingModel.IsRepresentative).ToList();
         if (representative.Count > 0 && trackMeters > 0)
         {
-            var worst = representative.OrderByDescending(l => l.LapTimeSec).First();
-            if (worst.Lap != reference.Lap)
-            {
-                var d = CoachingModel.CompareToReference(worst, reference, trackMeters);
-                worstLap = new LapDeltaSnapshot(
-                    d.Lap, d.FinalDeltaSec, d.CumulativeDeltaSec,
-                    d.TopLossZones.Select(z => new LossZoneSnapshot(z.StartPct, z.EndPct, z.SecondsLost)).ToList());
-            }
+            var w = representative.OrderByDescending(l => l.LapTimeSec).First();
+            if (w.Lap != reference.Lap) worst = w;
         }
 
-        return new CoachingSnapshot(
+        LapDeltaSnapshot? worstLap = null;
+        LapInputs? inputs = null;
+        if (worst is not null)
+        {
+            var d = CoachingModel.CompareToReference(worst, reference, trackMeters);
+            worstLap = new LapDeltaSnapshot(
+                d.Lap, d.FinalDeltaSec, d.CumulativeDeltaSec,
+                d.TopLossZones.Select(z => new LossZoneSnapshot(z.StartPct, z.EndPct, z.SecondsLost)).ToList());
+            inputs = new LapInputs(
+                ReferenceLap: reference.Lap,
+                Lap: worst.Lap,
+                RefThrottle: reference.Throttle,
+                RefBrake: reference.Brake,
+                LapThrottle: worst.Throttle,
+                LapBrake: worst.Brake);
+        }
+
+        var coaching = new CoachingSnapshot(
             ReferenceLap: reference.Lap,
             LapCount: consistency.LapCount,
             BestLapSec: consistency.BestLapSec,
@@ -134,6 +148,7 @@ public static class SessionDetailFactory
             StdDevSec: consistency.StdDevSec,
             SpreadSec: consistency.SpreadSec,
             LastLap: worstLap);
+        return (coaching, inputs);
     }
 
     private static double Median(IReadOnlyList<double> sorted)
