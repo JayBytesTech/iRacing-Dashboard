@@ -16,6 +16,7 @@ import { CoachingWidget } from '@/components/CoachingWidget';
 import { InputTraces } from '@/components/InputTraces';
 import { CompareSection } from '@/components/CompareSection';
 import { PaceChart } from '@/components/PaceChart';
+import { ShareReport } from '@/components/ShareReport';
 import { TrackMapWidget } from '@/components/TrackMapWidget';
 import { EventTimelineWidget } from '@/components/EventTimelineWidget';
 import { buildPace } from '@/lib/pace';
@@ -57,9 +58,12 @@ export default function SessionDetailPage() {
 
   return (
     <main style={{ maxWidth: 880, margin: '0 auto', padding: 24, color: '#e6e6e6', fontFamily: 'system-ui, sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 6 }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>{session?.displayTitle ?? 'Session'}</h1>
-        <Link href="/log" style={{ color: '#6aa3ff', fontSize: 14 }}>← journal</Link>
+        <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+          {session && <ShareReport session={session} detail={detail} />}
+          <Link href="/log" style={{ color: '#6aa3ff', fontSize: 14 }}>← journal</Link>
+        </span>
       </header>
       {session && (
         <div style={{ fontSize: 13, opacity: 0.65, marginBottom: 16 }}>
