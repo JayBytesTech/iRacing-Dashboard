@@ -82,7 +82,7 @@ void CaptureSession(string reason)
     lock (captureLock)
     {
         if (activeSessionNum is not { } sn || fuelTracker.Laps.Count == 0) return;
-        if (!capturedSessions.Add(sn)) return;
+        if (capturedSessions.Contains(sn)) return;
 
         var ibt = config.Telemetry.Mode == "ibt" && !string.IsNullOrWhiteSpace(config.Telemetry.IbtPath);
         var id = ibt ? "ibt:" + Path.GetFileName(config.Telemetry.IbtPath!)
@@ -90,11 +90,21 @@ void CaptureSession(string reason)
         var capturedAt = ibt && File.Exists(config.Telemetry.IbtPath!)
             ? new DateTimeOffset(File.GetLastWriteTimeUtc(config.Telemetry.IbtPath!), TimeSpan.Zero)
             : DateTimeOffset.UtcNow;
-        var record = SessionRecordFactory.Build(id, ibt ? id : "live", capturedAt, latestSession, fuelTracker, traceRecorder, eventDetector);
-        var detail = SessionDetailFactory.Build(latestSession, fuelTracker, traceRecorder, eventDetector);
-        journal.Upsert(record, SessionDetailFactory.Serialize(detail));
-        Console.WriteLine($"[journal] captured session {sn} ({reason}): {record.Laps} laps, " +
-                          $"best {record.BestLapSec?.ToString("F2") ?? "—"}s -> {record.Id}");
+        try
+        {
+            var record = SessionRecordFactory.Build(id, ibt ? id : "live", capturedAt, latestSession, fuelTracker, traceRecorder, eventDetector);
+            var detail = SessionDetailFactory.Build(latestSession, fuelTracker, traceRecorder, eventDetector);
+            journal.Upsert(record, SessionDetailFactory.Serialize(detail));
+            capturedSessions.Add(sn); // mark captured only on success, so a failure can retry on a later trigger
+            Console.WriteLine($"[journal] captured session {sn} ({reason}): {record.Laps} laps, " +
+                              $"best {record.BestLapSec?.ToString("F2") ?? "—"}s -> {record.Id}");
+        }
+        catch (Exception ex)
+        {
+            // A storage hiccup must never kill the telemetry loop or the shutdown path. Leave the
+            // session uncaptured so the next session-change / shutdown trigger can try again.
+            Console.WriteLine($"[journal] FAILED to capture session {sn} ({reason}): {ex.Message}");
+        }
     }
 }
 
@@ -201,17 +211,4 @@ _ = Task.Run(async () =>
         // Most recent events first, capped so the payload stays small (the timeline shows the latest).
         var recentEvents = eventDetector.Events.Count <= 20
             ? eventDetector.Events.Reverse().ToList()
-            : eventDetector.Events.Skip(eventDetector.Events.Count - 20).Reverse().ToList();
-        var snapshot = builder.Build(frame, iracingConnected, ageMs, fuelTracker.Current, coaching, recentEvents);
-        await hub.BroadcastAsync("liveSnapshot", snapshot, cts.Token);
-    }
-});
-
-app.Lifetime.ApplicationStopping.Register(() =>
-{
-    CaptureSession("shutdown"); // flush the current session on graceful stop (SIGINT/SIGTERM)
-    recorder?.Dispose();        // close the recording file
-    cts.Cancel();
-});
-app.Run($"http://{config.Server.Host}:{config.Server.Port}");
-return 0;
+            : eventDetector.Events.Skip(eventDetector.Events.Count - 20).Re

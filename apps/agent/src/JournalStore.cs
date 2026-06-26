@@ -26,6 +26,12 @@ public sealed class JournalStore
     {
         var c = new SqliteConnection(_connectionString);
         c.Open();
+        using var pragma = c.CreateCommand();
+        // WAL is durable across hard kills (a forced window-close or power loss can't leave a torn
+        // main DB), and lets the HTTP read connection and the capture write connection coexist
+        // without "database is locked". busy_timeout waits briefly instead of throwing on contention.
+        pragma.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;";
+        pragma.ExecuteNonQuery();
         return c;
     }
 
@@ -186,19 +192,4 @@ public sealed class JournalStore
             TrackConfig = S("trackConfig"),
             Car = S("car"),
             SessionType = S("sessionType"),
-            Laps = I("laps") ?? 0,
-            CleanLaps = I("cleanLaps") ?? 0,
-            BestLapSec = D("bestLapSec"),
-            StdDevSec = D("stdDevSec"),
-            FuelBurnPerLapLiters = D("fuelBurnPerLapLiters"),
-            Stops = I("stops"),
-            PitStops = I("pitStops"),
-            Incidents = I("incidents"),
-            Source = S("source"),
-            Title = S("title"),
-            Notes = S("notes"),
-            Rating = I("rating"),
-            Tags = tags,
-        };
-    }
-}
+            Laps = I(
