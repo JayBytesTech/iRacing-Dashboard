@@ -57,4 +57,21 @@ public record TelemetryFrame(
     // for non-uniform speed around the lap, unlike lapDistPct x lap-time). Both default null so older
     // recordings (which lack them) still deserialize.
     IReadOnlyList<int?>? CarIdxLapCompleted = null,
-    IReadOnlyList<double?>? CarIdxEstTime = null);
+    IReadOnlyList<double?>? CarIdxEstTime = null,
+    // Player-car tires. Null on older recordings that predate tire capture (so they still deserialize).
+    TireSet? Tires = null);
+
+/// <summary>Player-car tires for one tick. Temps are live surface temps (°C), pressure is hot
+/// pressure (kPa), wear is fraction of tread remaining (0..1, 1 = new). L/M/R are the tread
+/// left/middle/right positions exactly as iRacing reports them; mapping to inner/outer (which
+/// depends on the car side) is left to the UI.</summary>
+public record TireSet(TireCorner Lf, TireCorner Rf, TireCorner Lr, TireCorner Rr);
+
+public record TireCorner(
+    double? TempLeftC = null,
+    double? TempMidC = null,
+    double? TempRightC = null,
+    double? PressureKpa = null,
+    double? WearLeft = null,
+    double? WearMid = null,
+    double? WearRight = null);

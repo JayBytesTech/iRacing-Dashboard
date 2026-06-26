@@ -77,4 +77,6 @@ public record CarModel(
     double? FuelLevelLiters = null,
     bool? OnPitRoad = null,
     string? TrackSurface = null,
-    bool? IsPlayer = null);
+    bool? IsPlayer = null,
+    // Player-only live tires (null on other cars). SI units: temps °C, pressure kPa, wear 0..1.
+    TireSet? Tires = null);

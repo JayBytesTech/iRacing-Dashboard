@@ -243,7 +243,38 @@
             "boolean",
             "null"
           ]
+        },
+        "tires": {
+          "oneOf": [
+            { "$ref": "#/$defs/tireSet" },
+            { "type": "null" }
+          ]
         }
+      },
+      "additionalProperties": true
+    },
+    "tireCorner": {
+      "type": "object",
+      "description": "One tire for one tick. Temps in C (live surface, left/mid/right of tread), pressure in kPa (hot), wear 0..1 (fraction of tread remaining, 1 = new).",
+      "properties": {
+        "tempLeftC": { "type": ["number", "null"] },
+        "tempMidC": { "type": ["number", "null"] },
+        "tempRightC": { "type": ["number", "null"] },
+        "pressureKpa": { "type": ["number", "null"] },
+        "wearLeft": { "type": ["number", "null"] },
+        "wearMid": { "type": ["number", "null"] },
+        "wearRight": { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "tireSet": {
+      "type": "object",
+      "description": "Player-car tires by corner.",
+      "properties": {
+        "lf": { "$ref": "#/$defs/tireCorner" },
+        "rf": { "$ref": "#/$defs/tireCorner" },
+        "lr": { "$ref": "#/$defs/tireCorner" },
+        "rr": { "$ref": "#/$defs/tireCorner" }
       },
       "additionalProperties": true
     }

@@ -26,6 +26,18 @@ namespace IracingEngineer.Agent;
     TelemetryVar.CarIdxPosition, TelemetryVar.CarIdxClassPosition, TelemetryVar.CarIdxLap,
     TelemetryVar.CarIdxLapCompleted, TelemetryVar.CarIdxLapDistPct, TelemetryVar.CarIdxOnPitRoad,
     TelemetryVar.CarIdxEstTime,
+    // Player tires. Live surface temps (tempL/M/R, °C) — the carcass channels (tempCL/CM/CR) are
+    // frozen on the cars we tested, so we use the surface ones. Hot pressure (kPa) and tread-remaining
+    // wear (wearL/M/R, 0..1) round it out. Verified against a real .ibt: all 100% covered at 60 Hz.
+    TelemetryVar.LFtempL, TelemetryVar.LFtempM, TelemetryVar.LFtempR,
+    TelemetryVar.RFtempL, TelemetryVar.RFtempM, TelemetryVar.RFtempR,
+    TelemetryVar.LRtempL, TelemetryVar.LRtempM, TelemetryVar.LRtempR,
+    TelemetryVar.RRtempL, TelemetryVar.RRtempM, TelemetryVar.RRtempR,
+    TelemetryVar.LFpressure, TelemetryVar.RFpressure, TelemetryVar.LRpressure, TelemetryVar.RRpressure,
+    TelemetryVar.LFwearL, TelemetryVar.LFwearM, TelemetryVar.LFwearR,
+    TelemetryVar.RFwearL, TelemetryVar.RFwearM, TelemetryVar.RFwearR,
+    TelemetryVar.LRwearL, TelemetryVar.LRwearM, TelemetryVar.LRwearR,
+    TelemetryVar.RRwearL, TelemetryVar.RRwearM, TelemetryVar.RRwearR,
 ])]
 public sealed class IRacingTelemetrySource : ITelemetrySource
 {
@@ -128,7 +140,15 @@ public sealed class IRacingTelemetrySource : ITelemetrySource
         CarIdxLapDistPct: Nullable(t.CarIdxLapDistPct),
         CarIdxOnPitRoad: Nullable(t.CarIdxOnPitRoad),
         CarIdxLapCompleted: Nullable(t.CarIdxLapCompleted),
-        CarIdxEstTime: Nullable(t.CarIdxEstTime));
+        CarIdxEstTime: Nullable(t.CarIdxEstTime),
+        Tires: MapTires(t));
+
+    // Player-car tires. Temps °C, pressure kPa, wear 0..1 (fraction of tread remaining), all live.
+    private static TireSet MapTires(TelemetryData t) => new(
+        Lf: new TireCorner(t.LFtempL, t.LFtempM, t.LFtempR, t.LFpressure, t.LFwearL, t.LFwearM, t.LFwearR),
+        Rf: new TireCorner(t.RFtempL, t.RFtempM, t.RFtempR, t.RFpressure, t.RFwearL, t.RFwearM, t.RFwearR),
+        Lr: new TireCorner(t.LRtempL, t.LRtempM, t.LRtempR, t.LRpressure, t.LRwearL, t.LRwearM, t.LRwearR),
+        Rr: new TireCorner(t.RRtempL, t.RRtempM, t.RRtempR, t.RRpressure, t.RRwearL, t.RRwearM, t.RRwearR));
 
     // The SDK exposes per-car arrays with non-nullable elements; our frame model uses nullable
     // elements so a missing slot is explicit. (-1 padding is filtered downstream in SnapshotBuilder.)

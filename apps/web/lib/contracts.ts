@@ -93,6 +93,29 @@ export interface Car {
   gear?: number | null;
   rpm?: number | null;
   fuelLevelLiters?: number | null;
+  tires?: TireSet | null;
+}
+
+/**
+ * Player-car tires. Temps are live surface temps in °C, pressure is hot pressure in kPa, wear is
+ * fraction of tread remaining (0..1, 1 = new). left/mid/right are the tread positions as iRacing
+ * reports them; the widget maps those to inner/outer based on the car side.
+ */
+export interface TireCorner {
+  tempLeftC?: number | null;
+  tempMidC?: number | null;
+  tempRightC?: number | null;
+  pressureKpa?: number | null;
+  wearLeft?: number | null;
+  wearMid?: number | null;
+  wearRight?: number | null;
+}
+
+export interface TireSet {
+  lf: TireCorner;
+  rf: TireCorner;
+  lr: TireCorner;
+  rr: TireCorner;
 }
 
 /** Back-compat alias: the player is just a Car. */

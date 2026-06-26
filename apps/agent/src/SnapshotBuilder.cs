@@ -49,6 +49,7 @@ public sealed class SnapshotBuilder
             LapCompleted = f.LapCompleted,
             LapDistPct = f.LapDistPct,
             OnPitRoad = f.OnPitRoad,
+            Tires = f.Tires,
         };
 
         var cars = new List<CarModel>();
